@@ -2,6 +2,7 @@
 Syntax: .whois """
 from datetime import datetime
 import time
+import os
 
 from pyrogram import Client, Filters
 
