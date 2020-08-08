@@ -9,6 +9,7 @@ class Config():
     TMP_DOWNLOAD_DIRECTORY = os.environ.get(
         'TMP_DOWNLOAD_DIRECTORY', './DOWNLOADS/')
     COMMAND_HANDLER = os.environ.get('COMMAND_HANDLER', '.')
+    MAX_MESSAGE_LENGTH = 4096
 
 
 class Production(Config):
