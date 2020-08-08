@@ -12,7 +12,7 @@ from myrobot.helper_functions.extract_user import extract_user
 
 @Client.on_message(Filters.command(['whois', 'info', 'id'], COMMAND_HANDLER))
 async def who_is(client, message):
-    status_message = await message.reply_text('Gathering info...')
+    status_message = await message.edit('Gathering info...')
     from_user = None
     from_user_id, _ = extract_user(message)
     try:
@@ -21,10 +21,10 @@ async def who_is(client, message):
             user_id = int(user_id)
         from_user = await client.get_users(user_id)
     except Exception as e:
-        await status_message.edit(str(e))
+        await message.edit(str(e))
         return
     if from_user is None:
-        await status_message.edit('No valid user_id / message specified.')
+        await message.edit('No valid user_id / message specified.')
     else:
         message_out_str = ''
         message_out_str += f'ID: <code>{from_user.id}</code>\n'
@@ -46,6 +46,4 @@ async def who_is(client, message):
             await message.reply_photo(photo=local_user_photo, quote=True, caption=message_out_str, parse_mode='html', disable_notification=True)
             os.remove(local_user_photo)
         else:
-            await message.reply_text(text=message_out_str, quote=True, parse_mode='html', disable_notification=True)
-        await status_message.delete()
-        await message.delete()
+            await message.edit(text=message_out_str, quote=True, parse_mode='html', disable_notification=True)
