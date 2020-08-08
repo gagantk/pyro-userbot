@@ -1,6 +1,7 @@
 {
   "name": "GaganUserBot",
   "description": "Pyrogram Userbot. Developed by @GaganTK",
+  "repository": "https://github.com/gagantk/pyro-userbot",
   "env": {
     "ENV": {
       "description": "Setting this to ANYTHING will enable webhooks when in env mode",
