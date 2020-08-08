@@ -1,0 +1,5 @@
+config.py
+__pycache__
+myrobot/__pycache__
+myrobot/plugins/__pycache__
+**/*.session

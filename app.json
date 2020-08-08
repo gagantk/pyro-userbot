@@ -1,0 +1,52 @@
+{
+  "name": "GaganUserBot",
+  "description": "Pyrogram Userbot. Developed by @GaganTK",
+  "env": {
+    "ENV": {
+      "description": "Setting this to ANYTHING will enable webhooks when in env mode",
+      "value": "ANYTHING"
+    },
+    "API_ID": {
+      "desciption": "Get this value from https://my.telegram.org",
+      "value": ""
+    },
+    "API_HASH": {
+      "description": "Get this value from https://my.telegram.org",
+      "value": ""
+    },
+    "HU_STRING_SESSION": {
+      "description": "Generate this value by running python GenerateStringSession.py locally",
+      "value": ""
+    },
+    "COMMAND_HANDLER": {
+      "description": "Specify command handler that should be used for the plugins",
+      "required": false
+    },
+    "TMP_DOWNLOAD_DIRECTORY": {
+      "description": "This is required for the plugins involving the file system",
+      "required": false
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql",
+      "options": {
+        "version": "9.5"
+      }
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "free"
+    }
+  }
+}
