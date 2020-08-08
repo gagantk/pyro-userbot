@@ -29,12 +29,14 @@ async def who_is(client, message):
         message_out_str += f'ID: <code>{from_user.id}</code>\n'
         message_out_str += f'First Name: <a href="tg://user?id={from_user.id}">'
         message_out_str += from_user.first_name or ''
-        message_out_str += f'Last Name: {from_user.last_name or ""}\n'
-        message_out_str += f'DC ID: <code>{from_user.dc_id or ""}</code>\n'
+        if from_user.last_name:
+            message_out_str += f'</a>\nLast Name: {from_user.last_name or ""}\n'
+        if from_user.dc_id:
+            message_out_str += f'</a>\nDC ID: <code>{from_user.dc_id or ""}</code>\n'
         if message.chat.type in (('supergroup', 'channel')):
             chat_member_p = await message.chat.get_member(from_user.id)
             joined_date = datetime.fromtimestamp(
-                chat_member_p.joined_date or time.time()).strftime('%d-%m-%Y %H-%M-%S')
+                chat_member_p.joined_date or time.time()).strftime('%d-%m-%Y %H:%M:%S')
             message_out_str += f'<b>Joined On</b>: <code>{joined_date}</code>\n'
         chat_photo = from_user.photo
         if chat_photo:
@@ -44,3 +46,4 @@ async def who_is(client, message):
         else:
             await message.reply_text(text=message_out_str, quote=True, parse_mode='html', disable_notification=True)
         await status_message.delete()
+        await message.delete()
