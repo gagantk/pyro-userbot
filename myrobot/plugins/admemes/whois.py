@@ -30,10 +30,11 @@ async def who_is(client, message):
         message_out_str += f'ID: <code>{from_user.id}</code>\n'
         message_out_str += f'First Name: <a href="tg://user?id={from_user.id}">'
         message_out_str += from_user.first_name or ''
+        message_out_str += '</a>\n'
         if from_user.last_name:
-            message_out_str += f'</a>\nLast Name: {from_user.last_name or ""}\n'
+            message_out_str += f'Last Name: {from_user.last_name or ""}\n'
         if from_user.dc_id:
-            message_out_str += f'</a>\nDC ID: <code>{from_user.dc_id or ""}</code>\n'
+            message_out_str += f'DC ID: <code>{from_user.dc_id or ""}</code>\n'
         if message.chat.type in (('supergroup', 'channel')):
             chat_member_p = await message.chat.get_member(from_user.id)
             joined_date = datetime.fromtimestamp(
