@@ -12,7 +12,7 @@ from myrobot.helper_functions.extract_user import extract_user
 
 @Client.on_message(Filters.command(['whois', 'info', 'id'], COMMAND_HANDLER))
 async def who_is(client, message):
-    status_message = await message.edit('Gathering info...')
+    await message.edit('Gathering info...')
     from_user = None
     from_user_id, _ = extract_user(message)
     try:
@@ -46,4 +46,5 @@ async def who_is(client, message):
             await message.reply_photo(photo=local_user_photo, quote=True, caption=message_out_str, parse_mode='html', disable_notification=True)
             os.remove(local_user_photo)
         else:
-            await message.edit(text=message_out_str, quote=True, parse_mode='html', disable_notification=True)
+            await message.reply_text(text=message_out_str, quote=True, parse_mode='html', disable_notification=True)
+        await message.delete()
