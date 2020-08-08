@@ -1,6 +1,0 @@
-from pyrogram import Client
-
-session_string = 'BQCU3AcmugE4zXUvzPKgp-UVK6gmknzBiC46kqM2F01UHa_rZcH5fncc8Jda--5t_5Uszuw8rMtmEFj6G6Efwd3lZMmb-y3bV1Z9R9X-wob0IbLV8QbHgHDQqOOyA7rA_9bibO57ZEZ9ROFpo2oLQJS2utOhVdcGZBhBYMeBuauxHVxUm7bc1BZ1129JySEPxoqQEnmmzeA6bNMcyR-RxjLr-D6m6RKZALwd4fYfDl9NFP4THgpUAFTwEMJZMfl5xIJZMyyK3NmlETSbtAJQJWo4mPmS_W5A6Dha4oERMgdO8dpyTIAq50h_BomkYm_4YLjrJFOUc8mTRcHfGRUogYS5EKAePAA'
-
-with Client(session_string) as app:
-    print(app.get_me())
