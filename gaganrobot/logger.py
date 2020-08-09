@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO,
                         RotatingFileHandler(
                             "logs/gaganrobot.log", maxBytes=(20480), backupCount=10),
                         logging.StreamHandler()
-                    ]))
+                    ])
 logging.getLogger("pyrogram").setLevel(logging.WARNING)
 logging.getLogger("pyrogram.client.parser.html").setLevel(logging.ERROR)
 logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
