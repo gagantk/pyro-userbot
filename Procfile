@@ -1,1 +1,1 @@
-worker: python3 -m myrobot
+worker: bash run

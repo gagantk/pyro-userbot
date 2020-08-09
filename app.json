@@ -1,36 +1,34 @@
 {
   "name": "GaganUserBot",
   "description": "Pyrogram Userbot. Developed by @GaganTK",
+  "success_url": "https://t.me/GaganTK",
   "repository": "https://github.com/gagantk/pyro-userbot",
   "env": {
-    "ENV": {
-      "description": "Setting this to ANYTHING will enable webhooks when in env mode",
-      "value": "ANYTHING"
-    },
     "API_ID": {
-      "desciption": "Get this value from https://my.telegram.org",
-      "value": ""
+      "desciption": "Get this value from https://my.telegram.org"
     },
     "API_HASH": {
-      "description": "Get this value from https://my.telegram.org",
-      "value": ""
+      "description": "Get this value from https://my.telegram.org"
     },
     "HU_STRING_SESSION": {
-      "description": "Generate this value by running python GenerateStringSession.py locally",
-      "value": ""
-    },
-    "COMMAND_HANDLER": {
-      "description": "Specify command handler that should be used for the plugins",
+      "description": "Generate this by running `bash genStr`",
       "required": false
     },
-    "TMP_DOWNLOAD_DIRECTORY": {
-      "description": "This is required for the plugins involving the file system",
+    "DATABASE_URL": {
+      "description": "Mongodb url from https://cloud.mongodb.com/"
+    },
+    "FINISHED_PROGRESS_STR": {
+      "description": "single character for finished progress",
+      "required": false
+    },
+    "UNFINISHED_PROGRESS_STR": {
+      "description": "single character for unfinished progress",
       "required": false
     }
   },
   "buildpacks": [
     {
-      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest"
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
     },
     {
       "url": "heroku/python"
