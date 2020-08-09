@@ -13,6 +13,7 @@ googletrans
 hachoir
 heroku3
 html-telegraph-poster
+jq
 motor
 nest_asyncio
 oauth2client
