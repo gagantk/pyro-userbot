@@ -5,7 +5,7 @@ __all__ = ['Plugin']
 import asyncio
 from typing import Union, List, Optional
 
-from userge import logging
+from gaganrobot import logging
 from . import command, filter as _filter  # pylint: disable=unused-import
 from ... import client as _client  # pylint: disable=unused-import
 
@@ -16,7 +16,7 @@ _LOG_STR = "<<<!  [[[[[  %s  ]]]]]  !>>>"
 class Plugin:
     """ plugin class """
 
-    def __init__(self, client: '_client.Userge', name: str, parent: str) -> None:
+    def __init__(self, client: '_client.GaganRobot', name: str, parent: str) -> None:
         self._client = client
         self.name = name
         self.parent = parent
