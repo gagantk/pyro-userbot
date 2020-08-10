@@ -1,219 +1,158 @@
 # pylint: disable=missing-module-docstring
 
-__all__ = ['Filter', 'clear_db']
+__all__ = ['Plugin']
 
 import asyncio
-from typing import List, Tuple, Callable, Any, Optional, Union
+from typing import Union, List, Optional
 
-from pyrogram import Filters, MessageHandler
-from pyrogram.client.handlers.handler import Handler
-from pyrogram.client.filters.filter import Filter as RawFilter
+from userge import logging
+from . import command, filter as _filter  # pylint: disable=unused-import
+from ... import client as _client  # pylint: disable=unused-import
 
-from gaganrobot import logging, Config
-from ... import client as _client, get_collection  # pylint: disable=unused-import
-
-_DISABLED_FILTERS = get_collection("DISABLED_FILTERS")
-_UNLOADED_FILTERS = get_collection("UNLOADED_FILTERS")
 _LOG = logging.getLogger(__name__)
 _LOG_STR = "<<<!  [[[[[  %s  ]]]]]  !>>>"
 
-_DISABLED: List[str] = []
-_UNLOADED: List[str] = []
 
+class Plugin:
+    """ plugin class """
 
-def _init(name: str) -> Tuple[bool, bool]:
-    name = name.lstrip(Config.CMD_TRIGGER)
-    enabled = True
-    loaded = True
-    if name in _DISABLED:
-        enabled = False
-    if name in _UNLOADED:
-        loaded = False
-    return enabled, loaded
-
-
-async def _main() -> None:
-    async for flt in _DISABLED_FILTERS.find():
-        _DISABLED.append(flt['filter'])
-    async for flt in _UNLOADED_FILTERS.find():
-        _UNLOADED.append(flt['filter'])
-
-
-async def _enable(name: str) -> None:
-    name = name.lstrip(Config.CMD_TRIGGER)
-    if name in _DISABLED:
-        _DISABLED.remove(name)
-        await _DISABLED_FILTERS.delete_one({'filter': name})
-
-
-async def _disable(name: str) -> None:
-    name = name.lstrip(Config.CMD_TRIGGER)
-    if name != "enable":
-        _DISABLED.append(name)
-        await _DISABLED_FILTERS.insert_one({'filter': name})
-
-
-async def _load(name: str) -> None:
-    name = name.lstrip(Config.CMD_TRIGGER)
-    if name in _UNLOADED:
-        _UNLOADED.remove(name)
-        await _UNLOADED_FILTERS.delete_one({'filter': name})
-
-
-async def _unload(name: str) -> None:
-    name = name.lstrip(Config.CMD_TRIGGER)
-    if name != "load":
-        _UNLOADED.append(name)
-        await _UNLOADED_FILTERS.insert_one({'filter': name})
-
-
-async def clear_db() -> bool:
-    """ clear filters in DB """
-    _DISABLED.clear()
-    _UNLOADED.clear()
-    await _DISABLED_FILTERS.drop()
-    await _UNLOADED_FILTERS.drop()
-    _LOG.info(_LOG_STR, "cleared filter DB!")
-    return True
-
-asyncio.get_event_loop().run_until_complete(_main())
-
-
-class Filter:
-    """ filter class """
-
-    def __init__(self,
-                 filters: RawFilter,
-                 client: '_client.GaganRobot',
-                 group: int,
-                 allow_private: bool,
-                 allow_bots: bool,
-                 allow_groups: bool,
-                 allow_channels: bool,
-                 only_admins: bool,
-                 allow_via_bot: bool,
-                 check_client: bool,
-                 check_downpath: bool,
-                 check_change_info_perm: bool,
-                 check_edit_perm: bool,
-                 check_delete_perm: bool,
-                 check_restrict_perm: bool,
-                 check_promote_perm: bool,
-                 check_invite_perm: bool,
-                 check_pin_perm: bool,
-                 name: str = '') -> None:
-        self.filters = Filters.create(lambda _, __: self.is_enabled) & filters
-        self.name = name
-        self.scope: List[str] = []
-        if allow_bots:
-            self.scope.append('bot')
-        if allow_private:
-            self.scope.append('private')
-        if allow_channels:
-            self.scope.append('channel')
-        if allow_groups:
-            self.scope += ['group', 'supergroup']
-        self.only_admins = only_admins
-        self.allow_via_bot = allow_via_bot
-        self.check_client = allow_via_bot and check_client
-        self.check_downpath = check_downpath
-        self.check_change_info_perm = check_change_info_perm
-        self.check_edit_perm = check_edit_perm
-        self.check_delete_perm = check_delete_perm
-        self.check_restrict_perm = check_restrict_perm
-        self.check_promote_perm = check_promote_perm
-        self.check_invite_perm = check_invite_perm
-        self.check_pin_perm = check_pin_perm
-        self.check_perm = check_change_info_perm or check_edit_perm \
-            or check_delete_perm or check_restrict_perm or check_promote_perm \
-            or check_invite_perm or check_pin_perm
-        self.doc: Optional[str]
-        self.plugin_name: str
+    def __init__(self, client: '_client.Userge', name: str, parent: str) -> None:
         self._client = client
-        self._group = group
-        self._enabled = True
-        self._loaded = False
-        self._func: Callable[[Any], Any]
-        self._handler: Handler
+        self.name = name
+        self.parent = parent
+        self.doc: Optional[str] = None
+        self.commands: List['command.Command'] = []
+        self.filters: List['_filter.Filter'] = []
+        _LOG.debug(_LOG_STR, f"created plugin -> {self.name}")
 
     def __repr__(self) -> str:
-        return f"<filter - {self.name}>"
+        return f"plugin {self.name} - {self.doc} [{self.commands + self.filters}]"
 
     @property
     def is_enabled(self) -> bool:
         """ returns enable status """
-        return self._loaded and self._enabled
+        return any((flt.is_enabled for flt in self.commands + self.filters))
 
     @property
     def is_disabled(self) -> bool:
         """ returns disable status """
-        return self._loaded and not self._enabled
+        return all((flt.is_disabled for flt in self.commands + self.filters))
 
     @property
     def is_loaded(self) -> bool:
         """ returns load status """
-        return self._loaded
+        return any((flt.is_loaded for flt in self.commands + self.filters))
+
+    @property
+    def enabled_commands(self) -> List['command.Command']:
+        """ returns all enabled commands """
+        return [cmd for cmd in self.commands if cmd.is_enabled]
+
+    @property
+    def disabled_commands(self) -> List['command.Command']:
+        """ returns all disabled commands """
+        return [cmd for cmd in self.commands if cmd.is_disabled]
+
+    @property
+    def loaded_commands(self) -> List['command.Command']:
+        """ returns all loaded commands """
+        return [cmd for cmd in self.commands if cmd.is_loaded]
+
+    @property
+    def unloaded_commands(self) -> List['command.Command']:
+        """ returns all unloaded commands """
+        return [cmd for cmd in self.commands if not cmd.is_loaded]
+
+    @property
+    def enabled_filters(self) -> List['_filter.Filter']:
+        """ returns all enabled filters """
+        return [flt for flt in self.filters if flt.is_enabled]
+
+    @property
+    def disabled_filters(self) -> List['_filter.Filter']:
+        """ returns all disabled filters """
+        return [flt for flt in self.filters if flt.is_disabled]
+
+    @property
+    def loaded_filters(self) -> List['_filter.Filter']:
+        """ returns all loaded filters """
+        return [flt for flt in self.filters if flt.is_loaded]
+
+    @property
+    def unloaded_filters(self) -> List['_filter.Filter']:
+        """ returns all unloaded filters """
+        return [flt for flt in self.filters if not flt.is_loaded]
 
     async def init(self) -> None:
-        """ initialize the filter """
-        self._enabled, loaded = _init(self.name)
+        """ initialize the plugin """
+        await asyncio.gather(*[flt.init() for flt in self.commands + self.filters])
+
+    def add(self, obj: Union['command.Command', '_filter.Filter']) -> None:
+        """ add command or filter to plugin """
+        obj.plugin_name = self.name
+        if isinstance(obj, command.Command):
+            type_ = self.commands
+        else:
+            type_ = self.filters
+        for flt in type_:
+            if flt.name == obj.name:
+                type_.remove(flt)
+                break
+        type_.append(obj)
+        _LOG.debug(_LOG_STR, f"add filter to plugin -> {self.name}")
+
+    def get_commands(self) -> List[str]:
+        """ returns all sorted command names in the plugin """
+        return sorted((cmd.name for cmd in self.enabled_commands))
+
+    async def enable(self) -> List[str]:
+        """ enable all commands in the plugin """
+        if self.is_enabled:
+            return []
+        enabled: List[str] = []
+        for flt in self.commands + self.filters:
+            tmp = await flt.enable()
+            if tmp:
+                enabled.append(tmp)
+        if enabled:
+            _LOG.info(_LOG_STR, f"enabled plugin -> {self.name}")
+        return enabled
+
+    async def disable(self) -> List[str]:
+        """ disable all commands in the plugin """
+        if not self.is_enabled:
+            return []
+        disabled: List[str] = []
+        for flt in self.commands + self.filters:
+            tmp = await flt.disable()
+            if tmp:
+                disabled.append(tmp)
+        if disabled:
+            _LOG.info(_LOG_STR, f"disabled plugin -> {self.name}")
+        return disabled
+
+    async def load(self) -> List[str]:
+        """ load all commands in the plugin """
+        if self.is_loaded:
+            return []
+        loaded: List[str] = []
+        for flt in self.commands + self.filters:
+            tmp = await flt.load()
+            if tmp:
+                loaded.append(tmp)
         if loaded:
-            await self.load()
+            _LOG.info(_LOG_STR, f"loaded plugin -> {self.name}")
+        return loaded
 
-    @classmethod
-    def parse(cls, **kwargs: Union[RawFilter, '_client.GaganRobot', int, bool]) -> 'Filter':
-        """ parse filter """
-        return cls(**kwargs)
-
-    def update(self, func: Callable[[Any], Any], template: Callable[[Any], Any]) -> None:
-        """ update filter """
-        if not self.name:
-            self.name = f"{func.__module__.split('.')[-1]}.{func.__name__}"
-        self.doc = func.__doc__.strip() if func.__doc__ else None
-        self._func = func
-        self._handler = MessageHandler(template, self.filters)
-        _LOG.debug(_LOG_STR, f"updated filter -> {self.name}")
-
-    async def enable(self) -> str:
-        """ enable the filter """
-        if self._enabled:
-            return ''
-        self._enabled = True
-        await _enable(self.name)
-        _LOG.debug(_LOG_STR, f"enabled filter -> {self.name}")
-        return self.name
-
-    async def disable(self) -> str:
-        """ disable the filter """
-        if not self._enabled:
-            return ''
-        self._enabled = False
-        await _disable(self.name)
-        _LOG.debug(_LOG_STR, f"disabled filter -> {self.name}")
-        return self.name
-
-    async def load(self) -> str:
-        """ load the filter """
-        if self._loaded or (self._client.is_bot and not self.allow_via_bot):
-            return ''
-        self._client.add_handler(self._handler, self._group)
-        # pylint: disable=protected-access
-        if self.allow_via_bot and self._client._bot is not None:
-            self._client._bot.add_handler(self._handler, self._group)
-        self._loaded = True
-        await _load(self.name)
-        _LOG.debug(_LOG_STR, f"loaded filter -> {self.name}")
-        return self.name
-
-    async def unload(self) -> str:
-        """ unload the filter """
-        if not self._loaded:
-            return ''
-        self._client.remove_handler(self._handler, self._group)
-        # pylint: disable=protected-access
-        if self.allow_via_bot and self._client._bot is not None:
-            self._client._bot.remove_handler(self._handler, self._group)
-        self._loaded = False
-        await _unload(self.name)
-        _LOG.debug(_LOG_STR, f"unloaded filter -> {self.name}")
-        return self.name
+    async def unload(self) -> List[str]:
+        """ unload all commands in the plugin """
+        if not self.is_loaded:
+            return []
+        unloaded: List[str] = []
+        for flt in self.commands + self.filters:
+            tmp = await flt.unload()
+            if tmp:
+                unloaded.append(tmp)
+        if unloaded:
+            _LOG.info(_LOG_STR, f"unloaded plugin -> {self.name}")
+        return unloaded
