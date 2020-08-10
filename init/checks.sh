@@ -2,7 +2,7 @@
 
 _checkBashReq() {
     log "Checking Bash Commands ..."
-    # command -v jq &> /dev/null || quit "Required command : jq : could not be found !"
+    command -v jq &> /dev/null || quit "Required command : jq : could not be found !"
 }
 
 _checkPythonVersion() {
