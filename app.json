@@ -24,6 +24,41 @@
     "UNFINISHED_PROGRESS_STR": {
       "description": "single character for unfinished progress",
       "required": false
+    },
+    "HEROKU_APP_NAME": {
+      "description": "given app name to the heroku app",
+      "required": false
+    },
+    "HEROKU_API_KEY": {
+      "description": "get a Heroku API key from http://dashboard.heroku.com/account",
+      "required": false
+    },
+    "CMD_TRIGGER": {
+      "description": "set command prefix",
+      "required": false
+    },
+    "DOWN_PATH": {
+      "description": "Set name to your working directory",
+      "required": false
+    },
+    "LOAD_UNOFFICIAL_PLUGINS": {
+      "description": "Set True if your like to use unofficial plugins",
+      "required": false
+    },
+    "LOG_CHANNEL_ID": {
+      "description": "Telegram Log Channel ID"
+    },
+    "G_DRIVE_CLIENT_ID": {
+      "description": "Googel Drive API Keys from https://console.developers.google.com/",
+      "required": false
+    },
+    "G_DRIVE_CLIENT_SECRET": {
+      "description": "Googel Drive API Keys from https://console.developers.google.com/",
+      "required": false
+    },
+    "G_DRIVE_IS_TD": {
+      "description": "Set true if it is TeamDrive",
+      "required": false
     }
   },
   "buildpacks": [
