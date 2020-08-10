@@ -43,7 +43,7 @@ _checkDefaultVars() {
         [PREFERRED_LANGUAGE]="en"
         [DOWN_PATH]="downloads"
         [UPSTREAM_REMOTE]="upstream"
-        [UPSTREAM_REPO]="https://github.com/UsergeTeam/Userge"
+        [UPSTREAM_REPO]=""
         [LOAD_UNOFFICIAL_PLUGINS]=false
         [G_DRIVE_IS_TD]=true
         [CMD_TRIGGER]="."
