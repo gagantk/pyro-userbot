@@ -31,12 +31,13 @@ async def transcode(message: Message):
     if message.input_str:
         inputs = [word.strip() for word in message.input_str.split('|')]
         input_file = os.path.join(Config.DOWN_PATH, inputs[0])
-        file_name = inputs[1]
+        file_name = inputs[1].split('-')
         target_size = inputs[2]
         globalValues['total'] = int(ffmpeg.probe(
             input_file)['format']['duration'].split('.')[0])
         try:
-            audio_bitrate = ffmpeg.probe(input_file)['streams'][1]['bit_rate']
+            audio_bitrate = int(ffmpeg.probe(input_file)[
+                                'streams'][1]['bit_rate'])
         except KeyError:
             cmd = f'ffmpeg -i {input_file} -c:a copy audio.aac -y'
             await runcmd(cmd)
@@ -44,15 +45,31 @@ async def transcode(message: Message):
                 Config.DOWN_PATH, 'audio.aac'))['format']['bit_rate'])
         bitrate, size_name = calculate_bitrate(
             int(target_size), globalValues['total'], audio_bitrate)
-        output_file = os.path.join(
-            Config.DOWN_PATH, f'{file_name} - {size_name}.mkv')
-        globalValues['file'] = f'{file_name} - {size_name}.mkv'
+        if len(file_name) == 2:
+            output_file = os.path.join(
+                Config.DOWN_PATH, f'{file_name[0].strip()} - {file_name[1].strip()} - {size_name}.mkv')
+            globalValues['file'] = f'{file_name[0].strip()} - {file_name[1].strip()} - {size_name}.mkv'
+            metadata_file_name = f'https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {size_name}'
+        elif len(file_name) == 3 and file_name[2].strip() == 'ESubs':
+            output_file = os.path.join(
+                Config.DOWN_PATH, f'{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {size_name}.mkv')
+            globalValues['file'] = f'{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {size_name}.mkv'
+            metadata_file_name = f'https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {file_name[2].strip()} - {size_name}'
+        elif len(file_name) == 3 and (file_name[2].strip() == '720p' or file_name[2].strip() == '1080p'):
+            output_file = os.path.join(
+                Config.DOWN_PATH, f'{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {size_name}.mkv')
+            globalValues['file'] = f'{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {size_name}.mkv'
+            metadata_file_name = f'https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {file_name[2].strip()} - {size_name}'
+        elif len(file_name) == 4 and (file_name[2].strip() == '720p' or file_name[2].strip() == '1080p'):
+            output_file = os.path.join(
+                Config.DOWN_PATH, f'{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {file_name[3].strip()} - {size_name}.mkv')
+            globalValues['file'] = f'{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {file_name[3].strip()} - {size_name}.mkv'
+            metadata_file_name = f'https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {file_name[2].strip()} - {file_name[3].strip()} - {size_name}'
         globalValues['output'] = output_file
         optionsDict = {'-b:v': bitrate + 'k', '-c:a': 'copy', '-metadata': f'title={metadata_file_name}',
                        '-metadata:s:v:0': 'language=kan', '-metadata:s:a:0': 'language=kan'}
         if len(inputs) == 4:
             optionsDict['-vf'] = f'scale={inputs[3]}'
-        metadata_file_name = f'https://t.me/Kannada_Movies_HDs - {file_name} - x264 - AAC - {size_name}'
         ff = globalValues['ff'].input(input_file).option(
             'y').output(output_file, optionsDict)
         await ff.execute()
