@@ -118,16 +118,19 @@ async def on_progress(progress):
 @ff.on('completed')
 def on_completed():
     # print('Completed')
+    pass
 
 
 @ff.on('terminated')
 def on_terminated():
     # print('Terminated')
+    pass
 
 
 @ff.on('error')
 def on_error(code):
     # print('Error:', code)
+    pass
 
 
 def calculate_bitrate(size, total, audio_bitrate):
