@@ -1,14 +1,158 @@
-from gaganrobot import gaganrobot, Message
+import os
+import subprocess as sp
+import re
+import time
+import sys
+from math import floor
+
+import ffmpeg
+from typing import Dict, Tuple
+from pyrogram.errors.exceptions import FloodWait
+
+from gaganrobot import gaganrobot, Message, Config
+from gaganrobot.utils.tools import time_formatter, humanbytes
+from gaganrobot.utils.ffmpeg2.ffmpeg import FFmpeg
 
 LOGGER = gaganrobot.getLogger(__name__)
+
+_TASKS: Dict[str, Tuple[int, int]] = {}
+ff = FFmpeg()
+globalValues = {'ff': ff, 'msg': None, 'total': 0}
 
 
 @gaganrobot.on_cmd('transcode', about={'header': 'Transcode media files using ffmpeg', 'description': 'Transcode media files using ffmpeg', 'examples': '{tr}transcode input_file opts output_file'})
 async def transcode(message: Message):
     """ transcode media file """
     await message.edit('`Processing...`')
+    global globalValues
+    globalValues['msg'] = message
     if message.input_str:
-        text = message.input_str
-        options = text.split('|')
+        inputs = [word.strip() for word in message.input_str.split('|')]
+        input_file = os.path.join(Config.DOWN_PATH, inputs[0])
+        file_name = inputs[1]
+        target_size = inputs[2]
+        globalValues['total'] = int(ffmpeg.probe(
+            input_file)['format']['duration'].split('.')[0])
+        bitrate, size_name = calculate_bitrate(
+            int(target_size), globalValues['total'], 96)
+        output_file = os.path.join(
+            Config.DOWN_PATH, f'{file_name} - {size_name}.mkv')
+        globalValues['file'] = f'{file_name} - {size_name}.mkv'
+        metadata_file_name = f'https://t.me/Kannada_Movies_HDs - {file_name} - x264 - AAC - {size_name}'
+        ff = globalValues['ff'].input(input_file).option('y').option('b:v', bitrate + 'k').option('c:a', 'copy').option(
+            'metadata', f'title={metadata_file_name}').option('metadata:s:v:0', 'language=kan').option('metadata:s:a:0', 'language=kan').output(output_file)
+        await ff.execute()
     else:
         await message.edit("Please read `.help transcode`", del_in=5)
+
+
+@ff.on('start')
+def on_start(arguments):
+    # print('Arguments:', arguments)
+    pass
+
+
+@ff.on('stderr')
+def on_stderr(line):
+    # print('stderr:', line)
+    pass
+
+
+@ff.on('progress')
+async def on_progress(progress):
+    msg = globalValues['msg']
+    total = globalValues['total']
+    currentTime = progress.time.split(':')
+    current = int(currentTime[0]) * 3600 + int(currentTime[1]
+                                               ) * 60 + int(currentTime[2].split('.')[0])
+    size = progress.size
+    delay = 5
+    ud_type = 'Transcoding...'
+    file_name = globalValues['file']
+    if msg.process_is_canceled:
+        await msg.client.stop_transmission()
+    task_id = f"{msg.chat.id}.{msg.message_id}"
+    if current == total:
+        if task_id in _TASKS:
+            del _TASKS[task_id]
+        try:
+            await msg.try_to_edit("`finalizing process ...`")
+        except FloodWait as f_e:
+            time.sleep(f_e.x)
+        return
+    now = time.time()
+    if task_id not in _TASKS:
+        _TASKS[task_id] = (now, now)
+    start, last = _TASKS[task_id]
+    elapsed_time = now - start
+    if (now - last) >= delay:
+        _TASKS[task_id] = (start, now)
+        percentage = current * 100 / total
+        transcode_speed = str(progress.speed) + 'x'
+        speed = current / elapsed_time
+        time_to_completion = time_formatter(int((total - current) / speed))
+        progress_str = \
+            "__{}__ : `{}`\n" + \
+            "```[{}{}]```\n" + \
+            "**Progress** : `{}%`\n" + \
+            "**Completed** : `{}`\n" + \
+            "**Speed** : `{}`\n" + \
+            "**ETA** : `{}`"
+        progress_str = progress_str.format(
+            ud_type,
+            file_name,
+            ''.join((Config.FINISHED_PROGRESS_STR
+                     for i in range(floor(percentage / 5)))),
+            ''.join((Config.UNFINISHED_PROGRESS_STR
+                     for i in range(20 - floor(percentage / 5)))),
+            round(percentage, 2),
+            humanbytes(size),
+            transcode_speed,
+            time_to_completion if time_to_completion else "0 s")
+        try:
+            await msg.try_to_edit(progress_str)
+        except FloodWait as f_e:
+            time.sleep(f_e.x)
+
+
+@ff.on('completed')
+def on_completed():
+    # print('Completed')
+
+
+@ff.on('terminated')
+def on_terminated():
+    # print('Terminated')
+
+
+@ff.on('error')
+def on_error(code):
+    # print('Error:', code)
+
+
+def calculate_bitrate(size, total, audio_bitrate):
+    if size == 400:
+        bitrate = round(400 * 8 * 1024 / total - audio_bitrate + 10)
+        mod = bitrate % 5
+        if mod != 0:
+            bitrate = bitrate + 5 - mod
+    elif size == 700:
+        bitrate = round(400 * 8 * 1024 / total - audio_bitrate + 15)
+        mod = bitrate % 5
+        if mod != 0:
+            bitrate = bitrate + 5 - mod
+    elif size == 900:
+        bitrate = round(400 * 8 * 1024 / total - audio_bitrate + 20)
+        mod = bitrate % 5
+        if mod != 0:
+            bitrate = bitrate + 5 - mod
+    elif size > 1100 and size < 1500:
+        bitrate = round(400 * 8 * 1024 / total - audio_bitrate + 40)
+        mod = bitrate % 5
+        if mod != 0:
+            bitrate = bitrate + 5 - mod
+    if size > 1000:
+        out = str(round(size / 1000, 1)) + ' GB'
+    else:
+        out = str(size) + ' MB'
+    return (str(bitrate), out)
