@@ -21,6 +21,7 @@ oauth2client
 Pillow==6.2.2
 psutil
 pybase64
+pyee
 pySmartDL
 python-dotenv
 pytz
