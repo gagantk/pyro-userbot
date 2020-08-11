@@ -122,7 +122,7 @@ async def on_progress(progress):
 async def on_completed():
     # print('Completed')
     msg = globalValues['msg']
-    await upload(msg, Path(globalValues['output']))
+    await upload(msg, Path(globalValues['output']), upload_as_doc=True)
     pass
 
 

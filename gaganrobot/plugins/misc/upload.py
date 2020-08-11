@@ -48,7 +48,8 @@ async def rename_(message: Message):
         else:
             await message.delete()
             dl_loc = os.path.join(Config.DOWN_PATH, os.path.basename(dl_loc))
-            new_loc = os.path.join(Config.DOWN_PATH, message.filtered_input_str)
+            new_loc = os.path.join(
+                Config.DOWN_PATH, message.filtered_input_str)
             os.rename(dl_loc, new_loc)
             await upload(message, Path(new_loc), True)
     else:
@@ -183,12 +184,12 @@ async def upload_path(message: Message, path: Path, del_path):
             break
 
 
-async def upload(message: Message, path: Path, del_path: bool = False, extra: str = ''):
-    if path.name.endswith((".mkv", ".mp4", ".webm")) and ('d' not in message.flags):
+async def upload(message: Message, path: Path, del_path: bool = False, extra: str = '', upload_as_doc: bool = False):
+    if path.name.endswith((".mkv", ".mp4", ".webm")) and ('d' not in message.flags) and (not upload_as_doc):
         await vid_upload(message, path, del_path, extra)
-    elif path.name.endswith((".mp3", ".flac", ".wav", ".m4a")) and ('d' not in message.flags):
+    elif path.name.endswith((".mp3", ".flac", ".wav", ".m4a")) and ('d' not in message.flags) and (not upload_as_doc):
         await audio_upload(message, path, del_path, extra)
-    elif path.name.endswith((".jpg", ".jpeg", ".png", ".bmp")) and ('d' not in message.flags):
+    elif path.name.endswith((".jpg", ".jpeg", ".png", ".bmp")) and ('d' not in message.flags) and (not upload_as_doc):
         await photo_upload(message, path, del_path, extra)
     else:
         await doc_upload(message, path, del_path, extra)
