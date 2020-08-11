@@ -146,7 +146,7 @@ def on_terminated():
 @ff.on('error')
 def on_error(code):
     msg = globalValues['msg']
-    msg.edit(str(msg))
+    await msg.edit(str(msg))
     pass
 
 
