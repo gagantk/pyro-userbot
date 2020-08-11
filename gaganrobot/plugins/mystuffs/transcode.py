@@ -4,6 +4,7 @@ import re
 import time
 import sys
 from math import floor
+from pathlib import Path
 
 import ffmpeg
 from typing import Dict, Tuple
@@ -12,6 +13,7 @@ from pyrogram.errors.exceptions import FloodWait
 from gaganrobot import gaganrobot, Message, Config
 from gaganrobot.utils.tools import time_formatter, humanbytes
 from gaganrobot.utils.ffmpeg2.ffmpeg import FFmpeg
+from ..misc.upload import upload
 
 LOGGER = gaganrobot.getLogger(__name__)
 
@@ -38,9 +40,10 @@ async def transcode(message: Message):
         output_file = os.path.join(
             Config.DOWN_PATH, f'{file_name} - {size_name}.mkv')
         globalValues['file'] = f'{file_name} - {size_name}.mkv'
+        globalValues['output'] = output_file
         metadata_file_name = f'https://t.me/Kannada_Movies_HDs - {file_name} - x264 - AAC - {size_name}'
-        ff = globalValues['ff'].input(input_file).option('y').option('b:v', bitrate + 'k').option('c:a', 'copy').option(
-            'metadata', f'title={metadata_file_name}').option('metadata:s:v:0', 'language=kan').option('metadata:s:a:0', 'language=kan').output(output_file)
+        ff = globalValues['ff'].input(input_file).option('y').output(output_file, {
+            '-b:v': bitrate + 'k', '-c:a': 'copy', '-metadata': f'title={metadata_file_name}', '-metadata:s:v:0': 'language=kan', '-metadata:s:a:0': 'language=kan'})
         await ff.execute()
     else:
         await message.edit("Please read `.help transcode`", del_in=5)
@@ -67,7 +70,7 @@ async def on_progress(progress):
                                                ) * 60 + int(currentTime[2].split('.')[0])
     size = progress.size
     delay = 5
-    ud_type = 'Transcoding...'
+    ud_type = 'Transcoding'
     file_name = globalValues['file']
     if msg.process_is_canceled:
         await msg.client.stop_transmission()
@@ -116,8 +119,10 @@ async def on_progress(progress):
 
 
 @ff.on('completed')
-def on_completed():
+async def on_completed():
     # print('Completed')
+    msg = globalValues['msg']
+    await upload(msg, Path(globalValues['output']))
     pass
 
 
@@ -129,7 +134,8 @@ def on_terminated():
 
 @ff.on('error')
 def on_error(code):
-    # print('Error:', code)
+    msg = globalValues['msg']
+    msg.edit(str(msg))
     pass
 
 
@@ -155,7 +161,7 @@ def calculate_bitrate(size, total, audio_bitrate):
         if mod != 0:
             bitrate = bitrate + 5 - mod
     if size > 1000:
-        out = str(round(size / 1000, 1)) + ' GB'
+        out = str(round(size / 1000, 1)) + 'GB'
     else:
-        out = str(size) + ' MB'
+        out = str(size) + 'MB'
     return (str(bitrate), out)
