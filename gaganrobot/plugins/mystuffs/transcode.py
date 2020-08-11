@@ -11,7 +11,7 @@ from typing import Dict, Tuple
 from pyrogram.errors.exceptions import FloodWait
 
 from gaganrobot import gaganrobot, Message, Config
-from gaganrobot.utils.tools import time_formatter, humanbytes
+from gaganrobot.utils.tools import time_formatter, humanbytes, runcmd
 from gaganrobot.utils.ffmpeg2.ffmpeg import FFmpeg
 from ..misc.upload import upload
 
@@ -35,15 +35,26 @@ async def transcode(message: Message):
         target_size = inputs[2]
         globalValues['total'] = int(ffmpeg.probe(
             input_file)['format']['duration'].split('.')[0])
+        try:
+            audio_bitrate = ffmpeg.probe(input_file)['streams'][1]['bit_rate']
+        except KeyError:
+            cmd = f'ffmpeg -i {input_file} -c:a copy audio.aac -y'
+            await runcmd(cmd)
+            audio_bitrate = int(ffmpeg.probe(os.path.join(
+                Config.DOWN_PATH, 'audio.aac'))['format']['bit_rate'])
         bitrate, size_name = calculate_bitrate(
-            int(target_size), globalValues['total'], 96)
+            int(target_size), globalValues['total'], audio_bitrate)
         output_file = os.path.join(
             Config.DOWN_PATH, f'{file_name} - {size_name}.mkv')
         globalValues['file'] = f'{file_name} - {size_name}.mkv'
         globalValues['output'] = output_file
+        optionsDict = {'-b:v': bitrate + 'k', '-c:a': 'copy', '-metadata': f'title={metadata_file_name}',
+                       '-metadata:s:v:0': 'language=kan', '-metadata:s:a:0': 'language=kan'}
+        if len(inputs) == 4:
+            optionsDict['-vf'] = f'scale={inputs[3]}'
         metadata_file_name = f'https://t.me/Kannada_Movies_HDs - {file_name} - x264 - AAC - {size_name}'
-        ff = globalValues['ff'].input(input_file).option('y').output(output_file, {
-            '-b:v': bitrate + 'k', '-c:a': 'copy', '-metadata': f'title={metadata_file_name}', '-metadata:s:v:0': 'language=kan', '-metadata:s:a:0': 'language=kan'})
+        ff = globalValues['ff'].input(input_file).option(
+            'y').output(output_file, optionsDict)
         await ff.execute()
     else:
         await message.edit("Please read `.help transcode`", del_in=5)
@@ -95,7 +106,7 @@ async def on_progress(progress):
         speed = current / elapsed_time
         time_to_completion = time_formatter(int((total - current) / speed))
         progress_str = \
-            "__{}__ : `{}`\n" + \
+            "__{}__: `{}`\n" + \
             "```[{}{}]```\n" + \
             "**Progress** : `{}%`\n" + \
             "**Completed** : `{}`\n" + \
@@ -140,23 +151,29 @@ def on_error(code):
 
 
 def calculate_bitrate(size, total, audio_bitrate):
+    audio_bitrate = round(audio_bitrate / 1000)
     if size == 400:
-        bitrate = round(400 * 8 * 1024 / total - audio_bitrate + 10)
+        bitrate = round(size * 8 * 1024 / total - audio_bitrate + 10)
         mod = bitrate % 5
         if mod != 0:
             bitrate = bitrate + 5 - mod
     elif size == 700:
-        bitrate = round(400 * 8 * 1024 / total - audio_bitrate + 15)
+        bitrate = round(size * 8 * 1024 / total - audio_bitrate + 15)
         mod = bitrate % 5
         if mod != 0:
             bitrate = bitrate + 5 - mod
     elif size == 900:
-        bitrate = round(400 * 8 * 1024 / total - audio_bitrate + 20)
+        bitrate = round(size * 8 * 1024 / total - audio_bitrate + 20)
         mod = bitrate % 5
         if mod != 0:
             bitrate = bitrate + 5 - mod
     elif size > 1100 and size < 1500:
-        bitrate = round(400 * 8 * 1024 / total - audio_bitrate + 40)
+        bitrate = round(size * 8 * 1024 / total - audio_bitrate + 40)
+        mod = bitrate % 5
+        if mod != 0:
+            bitrate = bitrate + 5 - mod
+    elif size > 1500:
+        bitrate = round(size * 8 * 1024 / total - audio_bitrate + 60)
         mod = bitrate % 5
         if mod != 0:
             bitrate = bitrate + 5 - mod
