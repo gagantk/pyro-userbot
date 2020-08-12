@@ -21,7 +21,7 @@ from gaganrobot.utils import progress, take_screen_shot, humanbytes
 LOGGER = gaganrobot.getLogger(__name__)
 CHANNEL = gaganrobot.getCLogger(__name__)
 
-LOGO_PATH = 'resources/gaganrobot.png'
+LOGO_PATH = 'resources/thumb_image.jpg'
 THUMB_PATH = Config.DOWN_PATH + "thumb_image.jpg"
 
 
