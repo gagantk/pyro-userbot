@@ -18,8 +18,8 @@ from ..misc.upload import upload
 LOGGER = gaganrobot.getLogger(__name__)
 
 _TASKS: Dict[str, Tuple[int, int]] = {}
-ff = FFmpeg()
-globalValues = {'ff': ff, 'msg': None, 'total': 0}
+globalValues = {'ff': FFmpeg(), 'msg': None, 'total': 0}
+ff = globalValues['ff']
 
 
 @gaganrobot.on_cmd('transcode', about={'header': 'Transcode media files using ffmpeg', 'description': 'Transcode media files using ffmpeg', 'examples': '{tr}transcode input_file opts output_file'})
@@ -70,6 +70,7 @@ async def transcode(message: Message):
                        '-metadata:s:v:0': 'language=kan', '-metadata:s:a:0': 'language=kan'}
         if len(inputs) == 4:
             optionsDict['-vf'] = f'scale={inputs[3]}'
+        global ff
         ff = globalValues['ff'].input(input_file).option(
             'y').output(output_file, optionsDict)
         await ff.execute()
@@ -151,6 +152,8 @@ async def on_completed():
     # print('Completed')
     msg = globalValues['msg']
     await upload(msg, Path(globalValues['output']), upload_as_doc=True)
+    del globalValues['ff']
+    globalValues['ff'] = FFmpeg()
     pass
 
 
