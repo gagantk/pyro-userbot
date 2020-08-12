@@ -70,12 +70,17 @@ async def transcode(message: Message):
                        '-metadata:s:v:0': 'language=kan', '-metadata:s:a:0': 'language=kan'}
         if len(inputs) == 4:
             optionsDict['-vf'] = f'scale={inputs[3]}'
-        global ff
-        ff = globalValues['ff'].input(input_file).option(
+        setFF()
+        ff2 = globalValues['ff'].input(input_file).option(
             'y').output(output_file, optionsDict)
-        await ff.execute()
+        await ff2.execute()
     else:
         await message.edit("Please read `.help transcode`", del_in=5)
+
+
+def setFF():
+    global ff
+    ff = globalValues['ff']
 
 
 @ff.on('start')
@@ -85,8 +90,11 @@ def on_start(arguments):
 
 
 @ff.on('stderr')
-def on_stderr(line):
+async def on_stderr(line):
     # print('stderr:', line)
+    msg = globalValues['msg']
+    if 'error' in line.lower():
+        await msg.reply_text(str(line))
     pass
 
 
@@ -126,10 +134,10 @@ async def on_progress(progress):
         progress_str = \
             "__{}__: `{}`\n" + \
             "```[{}{}]```\n" + \
-            "**Progress** : `{}%`\n" + \
-            "**Completed** : `{}`\n" + \
-            "**Speed** : `{}`\n" + \
-            "**ETA** : `{}`"
+            "**Progress**: `{}%`\n" + \
+            "**Completed**: `{}`\n" + \
+            "**Speed**: `{}`\n" + \
+            "**ETA**: `{}`"
         progress_str = progress_str.format(
             ud_type,
             file_name,
@@ -160,6 +168,8 @@ async def on_completed():
 @ff.on('terminated')
 def on_terminated():
     # print('Terminated')
+    del globalValues['ff']
+    globalValues['ff'] = FFmpeg()
     pass
 
 
@@ -167,6 +177,8 @@ def on_terminated():
 async def on_error(code):
     msg = globalValues['msg']
     await msg.edit(str(msg))
+    del globalValues['ff']
+    globalValues['ff'] = FFmpeg()
     pass
 
 
