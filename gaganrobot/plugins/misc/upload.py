@@ -184,7 +184,7 @@ async def upload_path(message: Message, path: Path, del_path):
             break
 
 
-async def upload(message: Message, path: Path, del_path: bool = False, extra: str = '', upload_as_doc: bool = False):
+async def upload(message: Message, path: Path, del_path: bool = False, extra: str = '', upload_as_doc: bool = False, caption: str = ''):
     if path.name.endswith((".mkv", ".mp4", ".webm")) and ('d' not in message.flags) and (not upload_as_doc):
         await vid_upload(message, path, del_path, extra)
     elif path.name.endswith((".mp3", ".flac", ".wav", ".m4a")) and ('d' not in message.flags) and (not upload_as_doc):
@@ -192,21 +192,25 @@ async def upload(message: Message, path: Path, del_path: bool = False, extra: st
     elif path.name.endswith((".jpg", ".jpeg", ".png", ".bmp")) and ('d' not in message.flags) and (not upload_as_doc):
         await photo_upload(message, path, del_path, extra)
     else:
-        await doc_upload(message, path, del_path, extra)
+        await doc_upload(message, path, del_path, extra, caption=caption)
 
 
-async def doc_upload(message: Message, path, del_path: bool = False, extra: str = ''):
+async def doc_upload(message: Message, path, del_path: bool = False, extra: str = '', caption: str = ''):
     sent: Message = await message.client.send_message(
         message.chat.id, f"`Uploading {path.name} as a doc ... {extra}`")
     start_t = datetime.now()
     thumb = await get_thumb()
+    if caption:
+        setCaption = caption
+    else:
+        setCaption = path.name
     await message.client.send_chat_action(message.chat.id, "upload_document")
     try:
         msg = await message.client.send_document(
             chat_id=message.chat.id,
             document=str(path),
             thumb=thumb,
-            caption=path.name,
+            caption=setCaption,
             parse_mode="html",
             disable_notification=True,
             progress=progress,
