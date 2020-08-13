@@ -100,8 +100,10 @@ def setFF():
 
 
 @ff.on('start')
-def on_start(arguments):
+async def on_start(arguments):
     # print('Arguments:', arguments)
+    msg = globalValues['msg']
+    await msg.reply_text('Arguments: ' + str(arguments))
     pass
 
 
@@ -175,7 +177,7 @@ async def on_progress(progress):
 async def on_completed():
     # print('Completed')
     msg = globalValues['msg']
-    caption = f"**{globalValues['file'].replace('.mkv', '')}**\n\n@Kannada_Movies_HDs\nhttps://t.me/Kannada_Movies_HDs"
+    caption = f"<b>{globalValues['file'].replace('.mkv', '')}</b>\n\n@Kannada_Movies_HDs\nhttps://t.me/Kannada_Movies_HDs"
     await upload(msg, Path(globalValues['output']), upload_as_doc=True, caption=caption)
     del globalValues['ff']
     globalValues['ff'] = FFmpeg()
