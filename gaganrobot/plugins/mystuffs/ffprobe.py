@@ -2,6 +2,7 @@ import os
 import json
 
 import ffmpeg
+from ffmpeg import Error
 
 from gaganrobot import gaganrobot, Message, Config
 
@@ -16,6 +17,10 @@ async def ffprobe(message: Message):
     await message.edit('`Gathering info...`')
     if message.input_str:
         input_file = os.path.join(Config.DOWN_PATH, message.input_str)
-        data = ffmpeg.probe(input_file)
+        try:
+            data = ffmpeg.probe(input_file)
+        except Error as e:
+            await message.reply_text(e.stderr, del_in=60)
+            return
         out_str = json.dumps(data, indent=2)
         await message.edit(f'`{out_str}`')
