@@ -31,7 +31,7 @@ async def transcode(message: Message):
     if message.input_str:
         inputs = [word.strip() for word in message.input_str.split('|')]
         srt_file = ''
-        if '-s' in message.input_str and len(inputs[0].split() == 2):
+        if '-s' in message.input_str and len(inputs[0].split()) == 2:
             srt_file = os.path.join(
                 Config.DOWN_PATH, inputs[0].split()[1].strip())
             input_file = os.path.join(
