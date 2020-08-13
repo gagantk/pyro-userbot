@@ -48,7 +48,7 @@ async def transcode(message: Message):
             audio_codec = data['streams'][1]['codec_name']
             audio_bitrate = int(data['streams'][1]['bit_rate'])
         except KeyError:
-            cmd = f'ffmpeg -i {input_file} -c:a copy audio.{audio_codec} -y'
+            cmd = f"ffmpeg -i {input_file} -c:a copy {os.path.join(Config.DOWN_PATH, 'audio.' + audio_codec)} -y"
             await runcmd(cmd)
             audio_bitrate = int(ffmpeg.probe(os.path.join(
                 Config.DOWN_PATH, f'audio.{audio_codec}'))['format']['bit_rate'])
