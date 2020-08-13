@@ -22,7 +22,7 @@ globalValues = {'ff': FFmpeg(), 'msg': None, 'total': 0}
 ff = globalValues['ff']
 
 
-@gaganrobot.on_cmd('transcode', about={'header': 'Transcode media files using ffmpeg', 'description': 'Transcode media files using ffmpeg', 'examples': '{tr}transcode input_file opts output_file'})
+@gaganrobot.on_cmd('transcode', about={'header': 'Transcode media files using ffmpeg', 'description': 'Transcode media files using ffmpeg', 'usage': '{tr}transcode input_file | output_file | size | [scale] | [-s srt_file]', 'examples': ['{tr}transcode in.mp4 | In (2000) - HDRip | 400', '{tr}transcode in.mp4 | In (2001) - HDRip - ESubs | 900 | 1280:-1', '{tr}transcode in.mp4 in.srt | In (2003) - HDRip - ESubs | 700 | -s']})
 async def transcode(message: Message):
     """ transcode media file """
     await message.edit('`Processing...`')
@@ -30,7 +30,14 @@ async def transcode(message: Message):
     globalValues['msg'] = message
     if message.input_str:
         inputs = [word.strip() for word in message.input_str.split('|')]
-        input_file = os.path.join(Config.DOWN_PATH, inputs[0])
+        srt_file = ''
+        if '-s' in message.input_str and len(inputs[0].split() == 2):
+            srt_file = os.path.join(
+                Config.DOWN_PATH, inputs[0].split()[1].strip())
+            input_file = os.path.join(
+                Config.DOWN_PATH, inputs[0].split()[0].strip())
+        else:
+            input_file = os.path.join(Config.DOWN_PATH, inputs[0])
         file_name = inputs[1].split('-')
         target_size = inputs[2]
         globalValues['total'] = int(ffmpeg.probe(
@@ -68,11 +75,20 @@ async def transcode(message: Message):
         globalValues['output'] = output_file
         optionsDict = {'-b:v': bitrate + 'k', '-c:a': 'copy', '-metadata': f'title={metadata_file_name}',
                        '-metadata:s:v:0': 'language=kan', '-metadata:s:a:0': 'language=kan'}
-        if len(inputs) == 4:
+        if len(inputs) == 4 and '-s' not in inputs[3]:
             optionsDict['-vf'] = f'scale={inputs[3]}'
+        elif len(inputs) == 4 and '-s' in inputs[3]:
+            optionsDict['-c:s'] = 'copy'
+        elif len(inputs) == 5 and '-s' in inputs[4]:
+            optionsDict['-vf'] = f'scale={inputs[4]}'
+            optionsDict['-c:s'] = 'copy'
         setFF()
-        ff2 = globalValues['ff'].input(input_file).option(
-            'y').output(output_file, optionsDict)
+        if srt_file:
+            ff2 = globalValues['ff'].input(input_file).input(srt_file).option(
+                'y').output(output_file, optionsDict)
+        else:
+            ff2 = globalValues['ff'].input(input_file).option(
+                'y').output(output_file, optionsDict)
         await ff2.execute()
     else:
         await message.edit("Please read `.help transcode`", del_in=5)
