@@ -80,7 +80,7 @@ async def transcode(message: Message):
         elif len(inputs) == 4 and '-s' in inputs[3]:
             optionsDict['-c:s'] = 'copy'
         elif len(inputs) == 5 and '-s' in inputs[4]:
-            optionsDict['-vf'] = f'scale={inputs[4]}'
+            optionsDict['-vf'] = f'scale={inputs[3]}'
             optionsDict['-c:s'] = 'copy'
         setFF()
         if srt_file:
