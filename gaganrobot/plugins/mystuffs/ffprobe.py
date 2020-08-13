@@ -23,4 +23,9 @@ async def ffprobe(message: Message):
             await message.reply_text(e.stderr, del_in=60)
             return
         out_str = json.dumps(data, indent=2)
-        await message.edit(f'`{out_str}`')
+        if len(out_str) > Config.MAX_MESSAGE_LENGTH:
+            with open(os.path.join(Config.DOWN_PATH, 'probe.txt'), 'w') as f:
+                f.write(out_str)
+            await message.reply_document(os.path.join(Config.DOWN_PATH, 'probe.txt'))
+        else:
+            await message.edit(f'`{out_str}`')
