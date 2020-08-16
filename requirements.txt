@@ -14,6 +14,7 @@ googletrans
 hachoir
 heroku3
 html-telegraph-poster
+html2text
 jq
 motor
 nest_asyncio
@@ -23,6 +24,7 @@ psutil
 pybase64
 pyee
 pySmartDL
+pysrt
 python-dotenv
 pytz
 rarfile
@@ -35,5 +37,6 @@ speedtest-cli
 stagger
 telegraph
 tgcrypto
+webvtt-py
 wget
 youtube_dl
