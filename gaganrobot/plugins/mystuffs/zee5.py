@@ -26,12 +26,14 @@ async def zee(message: Message):
         formats = get_formats(download_url)
         if len(inputs) == 1:
             await message.reply_text(f'`{download_url}`')
-            await message.try_to_edit(f"`{'\n'.join(formats)}`")
+            text = '\n'.join(formats)
+            await message.try_to_edit(f"`{text}`")
         elif len(inputs) == 2:
             if inputs[1] == 'subs':
                 if not download_subs(inputs[0]):
                     await message.try_to_edit('`Subtitles not available!`')
             else:
+                pass
 
 
 def get_url(movie_id):
