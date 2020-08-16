@@ -74,14 +74,21 @@ async def transcode(message: Message):
         output_file = os.path.join(Config.DOWN_PATH, globalValues['file'])
         globalValues['output'] = output_file
         optionsDict = {'-b:v': bitrate + 'k', '-c:a': 'copy', '-metadata': f'title={metadata_file_name}',
-                       '-metadata:s:v:0': 'language=kan', '-metadata:s:a:0': 'language=kan'}
+                       '-metadata:s:v:0': 'language=kan', '-metadata:s:v:0': 'title="https://t.me/Kannada_Movies_HDs"',
+                       '-metadata:s:a:0': 'language=kan', '-metadata:s:a:0': 'title = "https://t.me/Kannada_Movies_HDs"}
         if len(inputs) == 4 and '-s' not in inputs[3]:
             optionsDict['-vf'] = f'scale={inputs[3]}'
         elif len(inputs) == 4 and '-s' in inputs[3]:
             optionsDict['-c:s'] = 'copy'
+            optionsDict['-metadata:s:s:0'] = 'language=eng'
+            optionsDict['-metadata:s:s:0'] = 'title="https://t.me/Kannada_Movies_HDs"'
+            optionsDict['-disposition:s:0'] = 'default'
         elif len(inputs) == 5 and '-s' in inputs[4]:
             optionsDict['-vf'] = f'scale={inputs[3]}'
             optionsDict['-c:s'] = 'copy'
+            optionsDict['-metadata:s:s:0'] = 'language=eng'
+            optionsDict['-metadata:s:s:0'] = 'title="https://t.me/Kannada_Movies_HDs"'
+            optionsDict['-disposition:s:0'] = 'default'
         setFF()
         if srt_file:
             ff2 = globalValues['ff'].input(input_file).input(srt_file).option(

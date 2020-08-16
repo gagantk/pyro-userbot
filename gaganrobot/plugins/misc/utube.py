@@ -59,26 +59,61 @@ async def ytDown(message: Message):
     """ download from a link """
     def __progress(data: dict):
         if ((time() - startTime) % 4) > 3.9:
-            if data['status'] == "downloading":
+            if data['status'] == 'downloading':
                 eta = data.get('eta')
                 speed = data.get('speed')
                 if not (eta and speed):
                     return
-                out = "**Speed** >> {}/s\n**ETA** >> {}\n".format(
-                    humanbytes(speed), time_formatter(eta))
-                out += f'**File Name** >> `{data["filename"]}`\n\n'
                 current = data.get('downloaded_bytes')
                 total = data.get("total_bytes")
+                progress_str = \
+                    "__{}__\n" + \
+                    "```[{}{}]```\n" + \
+                    "**Progress**: `{}%`\n" + \
+                    "**FILENAME**: `{}`\n" + \
+                    "**Completed**: `{}`\n" + \
+                    "**Total**: `{}`\n" + \
+                    "**Speed**: `{}`\n" + \
+                    "**ETA**: `{}`"
                 if current and total:
                     percentage = int(current) * 100 / int(total)
-                    out += f"Progress >> {int(percentage)}%\n"
-                    out += "[{}{}]".format(
+                    progress_str = progress_str.format(
+                        'Downloading',
                         ''.join((Config.FINISHED_PROGRESS_STR
-                                 for _ in range(floor(percentage / 5)))),
+                                 for i in range(math.floor(percentage / 5)))),
                         ''.join((Config.UNFINISHED_PROGRESS_STR
-                                 for _ in range(20 - floor(percentage / 5)))))
+                                 for i in range(20 - math.floor(percentage / 5)))),
+                        round(percentage, 2),
+                        data['filename'],
+                        humanbytes(current),
+                        humanbytes(total),
+                        speed,
+                        eta
+                    )
                 if message.text != out:
                     asyncio.get_event_loop().run_until_complete(message.edit(out))
+
+        # if ((time() - startTime) % 4) > 3.9:
+        #     if data['status'] == "downloading":
+        #         eta = data.get('eta')
+        #         speed = data.get('speed')
+        #         if not (eta and speed):
+        #             return
+        #         out = "**Speed** >> {}/s\n**ETA** >> {}\n".format(
+        #             humanbytes(speed), time_formatter(eta))
+        #         out += f'**File Name** >> `{data["filename"]}`\n\n'
+        #         current = data.get('downloaded_bytes')
+        #         total = data.get("total_bytes")
+        #         if current and total:
+        #             percentage = int(current) * 100 / int(total)
+        #             out += f"Progress >> {int(percentage)}%\n"
+        #             out += "[{}{}]".format(
+        #                 ''.join((Config.FINISHED_PROGRESS_STR
+        #                          for _ in range(floor(percentage / 5)))),
+        #                 ''.join((Config.UNFINISHED_PROGRESS_STR
+        #                          for _ in range(20 - floor(percentage / 5)))))
+        #         if message.text != out:
+        #             asyncio.get_event_loop().run_until_complete(message.edit(out))
 
     await message.edit("Hold on \u23f3 ..")
     startTime = time()
