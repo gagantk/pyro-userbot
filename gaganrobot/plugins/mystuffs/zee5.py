@@ -17,7 +17,7 @@ ext = ''
 urls = []
 
 
-@gaganrobot.on_cmd('zee5', about: {'description': 'Download Zee5 contents'})
+@gaganrobot.on_cmd('zee5', 'about'={'header': 'Download Zee5 contents'})
 async def zee(message: Message):
     await message.edit('Processing...')
     if message.input_str:
