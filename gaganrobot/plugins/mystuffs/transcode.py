@@ -82,14 +82,12 @@ async def transcode(message: Message):
                 optionsDict['-vf'] = f'scale={inputs[3]}'
             elif len(inputs) == 4 and '-s' in inputs[3]:
                 optionsDict['-c:s'] = 'copy'
-                optionsDict['-metadata:s:s:0'] = 'language=eng'
-                optionsDict['-metadata:s:s:0'] = 'title="https://t.me/Kannada_Movies_HDs"'
+                optionsDict['-metadata:s:s:0'] = ['language=eng', 'title="https://t.me/Kannada_Movies_HDs"']
                 optionsDict['-disposition:s:0'] = 'default'
             elif len(inputs) == 5 and '-s' in inputs[4]:
                 optionsDict['-vf'] = f'scale={inputs[3]}'
                 optionsDict['-c:s'] = 'copy'
-                optionsDict['-metadata:s:s:0'] = 'language=eng'
-                optionsDict['-metadata:s:s:0'] = 'title="https://t.me/Kannada_Movies_HDs"'
+                optionsDict['-metadata:s:s:0'] = ['language=eng', 'title="https://t.me/Kannada_Movies_HDs"']
                 optionsDict['-disposition:s:0'] = 'default'
             setFF()
             if srt_file:
