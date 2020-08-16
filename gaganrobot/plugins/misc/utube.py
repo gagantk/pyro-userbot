@@ -66,32 +66,22 @@ async def ytDown(message: Message):
                     return
                 current = data.get('downloaded_bytes')
                 total = data.get("total_bytes")
-                progress_str = \
-                    "__{}__\n" + \
-                    "```[{}{}]```\n" + \
-                    "**Progress**: `{}%`\n" + \
-                    "**FILENAME**: `{}`\n" + \
-                    "**Completed**: `{}`\n" + \
-                    "**Total**: `{}`\n" + \
-                    "**Speed**: `{}`\n" + \
-                    "**ETA**: `{}`"
+                progress_str = f"**FILENAME**: `{data['filename']}`\n" + \
+                    f"**Speed**: `{humanbytes(speed)}`\n" + \
+                    f"**ETA**: `{time_formatter(eta)}`"
                 if current and total:
                     percentage = int(current) * 100 / int(total)
-                    progress_str = progress_str.format(
-                        'Downloading',
-                        ''.join((Config.FINISHED_PROGRESS_STR
-                                 for i in range(floor(percentage / 5)))),
-                        ''.join((Config.UNFINISHED_PROGRESS_STR
-                                 for i in range(20 - floor(percentage / 5)))),
-                        round(percentage, 2),
-                        data['filename'],
-                        humanbytes(current),
-                        humanbytes(total),
-                        speed,
-                        eta
-                    )
-                if message.text != out:
-                    asyncio.get_event_loop().run_until_complete(message.edit(out))
+                    fin = ''.join((Config.FINISHED_PROGRESS_STR
+                                 for i in range(floor(percentage / 5))))
+                    unfin = ''.join((Config.UNFINISHED_PROGRESS_STR
+                                 for i in range(20 - floor(percentage / 5))))
+                    progress_str = f"__Downloading__\n" + \
+                        f"```[{fin}{unfin}]```\n" + \
+                        f"**Progress**: `{round(percentage, 2)}%`\n" + \
+                        f"**Completed**: `{humanbytes(current)}`\n" + \
+                        f"**Total**: `{humanbytes(total)}`\n" + progress_str
+                if message.text != progress_str:
+                    asyncio.get_event_loop().run_until_complete(message.edit(progress_str))
 
         # if ((time() - startTime) % 4) > 3.9:
         #     if data['status'] == "downloading":
@@ -104,6 +94,7 @@ async def ytDown(message: Message):
         #         out += f'**File Name** >> `{data["filename"]}`\n\n'
         #         current = data.get('downloaded_bytes')
         #         total = data.get("total_bytes")
+        #         print(out)
         #         if current and total:
         #             percentage = int(current) * 100 / int(total)
         #             out += f"Progress >> {int(percentage)}%\n"
@@ -112,6 +103,8 @@ async def ytDown(message: Message):
         #                          for _ in range(floor(percentage / 5)))),
         #                 ''.join((Config.UNFINISHED_PROGRESS_STR
         #                          for _ in range(20 - floor(percentage / 5)))))
+        #         print(message.text)
+        #         print(out)
         #         if message.text != out:
         #             asyncio.get_event_loop().run_until_complete(message.edit(out))
 
