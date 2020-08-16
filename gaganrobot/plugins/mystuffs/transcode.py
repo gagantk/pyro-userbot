@@ -75,7 +75,7 @@ async def transcode(message: Message):
         globalValues['output'] = output_file
         optionsDict = {'-b:v': bitrate + 'k', '-c:a': 'copy', '-metadata': f'title={metadata_file_name}',
                        '-metadata:s:v:0': 'language=kan', '-metadata:s:v:0': 'title="https://t.me/Kannada_Movies_HDs"',
-                       '-metadata:s:a:0': 'language=kan', '-metadata:s:a:0': 'title = "https://t.me/Kannada_Movies_HDs"}
+                       '-metadata:s:a:0': 'language=kan', '-metadata:s:a:0': 'title = "https://t.me/Kannada_Movies_HDs"'}
         if len(inputs) == 4 and '-s' not in inputs[3]:
             optionsDict['-vf'] = f'scale={inputs[3]}'
         elif len(inputs) == 4 and '-s' in inputs[3]:

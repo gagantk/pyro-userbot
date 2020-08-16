@@ -80,9 +80,9 @@ async def ytDown(message: Message):
                     progress_str = progress_str.format(
                         'Downloading',
                         ''.join((Config.FINISHED_PROGRESS_STR
-                                 for i in range(math.floor(percentage / 5)))),
+                                 for i in range(floor(percentage / 5)))),
                         ''.join((Config.UNFINISHED_PROGRESS_STR
-                                 for i in range(20 - math.floor(percentage / 5)))),
+                                 for i in range(20 - floor(percentage / 5)))),
                         round(percentage, 2),
                         data['filename'],
                         humanbytes(current),
