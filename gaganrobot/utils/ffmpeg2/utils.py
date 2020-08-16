@@ -19,7 +19,13 @@ def build_options(options):
 
         argument = ['-{key}'.format(key=key)]
         if value is not None:
-            argument.append(str(value))
+            if isinstance(value, list):
+                for index, item in enumerate(value):
+                    argument.append(str(item))
+                    if index + 1 != len(value):
+                        argument.append('-{key}'.format(key=key))
+            else:
+                argument.append(str(value))
 
         arguments.extend(argument)
 
