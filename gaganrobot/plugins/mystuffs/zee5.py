@@ -115,10 +115,10 @@ def convert(arg):
     os.remove(arg)
 
 
-download_url = get_url()
-get_formats(download_url)
-if len(sys.argv) == 3:
-    if sys.argv[2] == 'subs':
-        download_subs()
-    else:
-        download_video()
+# download_url = get_url()
+# get_formats(download_url)
+# if len(sys.argv) == 3:
+#     if sys.argv[2] == 'subs':
+#         download_subs()
+#     else:
+#         download_video()
