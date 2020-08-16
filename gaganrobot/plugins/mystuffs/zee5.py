@@ -18,7 +18,7 @@ urls = []
 
 
 @gaganrobot.on_cmd('zee5')
-async def zee(message: Message):
+async def zee(message: Message, about: {'description': 'Download Zee5 contents'}):
     await message.edit('Processing...')
     if message.input_str:
         inputs = message.input_str.split()
