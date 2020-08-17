@@ -82,12 +82,14 @@ async def transcode(message: Message):
                 optionsDict['-vf'] = f'scale={inputs[3]}'
             elif len(inputs) == 4 and '-s' in inputs[3]:
                 optionsDict['-c:s'] = 'copy'
-                optionsDict['-metadata:s:s:0'] = ['language=eng', 'title="https://t.me/Kannada_Movies_HDs"']
+                optionsDict['-metadata:s:s:0'] = ['language=eng',
+                                                  'title="https://t.me/Kannada_Movies_HDs"']
                 optionsDict['-disposition:s:0'] = 'default'
             elif len(inputs) == 5 and '-s' in inputs[4]:
                 optionsDict['-vf'] = f'scale={inputs[3]}'
                 optionsDict['-c:s'] = 'copy'
-                optionsDict['-metadata:s:s:0'] = ['language=eng', 'title="https://t.me/Kannada_Movies_HDs"']
+                optionsDict['-metadata:s:s:0'] = ['language=eng',
+                                                  'title="https://t.me/Kannada_Movies_HDs"']
                 optionsDict['-disposition:s:0'] = 'default'
             setFF()
             if srt_file:
@@ -113,6 +115,38 @@ async def transcode(message: Message):
         await ff2.execute()
     else:
         await message.edit("Please read `.help transcode`", del_in=5)
+
+
+@gaganrobot.on_cmd('transcode', about={'header': 'Combine audio and video files', 'description': 'Combine audio and video files using ffmpeg', 'usage': '{tr}combine video.mp4 audio.mp4 out_file_name | [scale crop]', 'examples': ['{tr}combine video.mp4 audio.mp4 out_file_name | [scale crop]']})
+async def combine(message: Message):
+    ''' combine audio and video files '''
+    await message.edit('Processing...')
+    global globalValues
+    globalValues['msg'] = message
+    if message.input_str:
+        inputs = [word.strip() for word in message.input_str.split('|')]
+        files = inputs[0].split()
+        video_file = os.path.join(Config.DOWN_PATH, files[0])
+        audio_file = os.path.join(Config.DOWN_PATH, files[1])
+        output_file = os.path.join(Config.DOWN_PATH, files[2])
+        if len(inputs) == 2 and len(files) == 4:
+            srt_file = os.path.join(Config.DOWN_PATH, files[3])
+            options = {'-vf': inputs[1], '-c:a': 'copy', '-c:s': 'copy'}
+        elif len(inputs) == 2 and len(files) == 3:
+            options = {'-vf': inputs[1], '-c:a': 'copy'}
+        elif len(inputs) == 1:
+            options = {'-c': 'copy'}
+        globalValues['output'] == output_file
+        setFF()
+        if len(files) == 3:
+            ff2 = globalValues['ff'].input(video_file).input(
+                audio_file).option('y').output(output_file, options)
+        elif len(files) == 4:
+            ff2 = globalValues['ff'].input(video_file).input(audio_file).input(
+                srt_file).option('y').output(output_file, options)
+        await ff2.execute()
+    else:
+        await message.edit("Please read `.help combine`", del_in=5)
 
 
 def setFF():

@@ -3,13 +3,19 @@ from webvtt import WebVTT
 from html2text import HTML2Text
 from pysrt.srtitem import SubRipItem
 from pysrt.srttime import SubRipTime
+from math import floor
+from time import time
 import sys
 import requests
 import wget
 import os
 import html
+import glob
+import asyncio
 
 from gaganrobot import gaganrobot, Config, Message
+from gaganrobot.plugins.misc.utube import _tubeDl
+from gaganrobot.utils import humanbytes, time_formatter
 
 ydl = YoutubeDL()
 name = ''
@@ -33,7 +39,7 @@ async def zee(message: Message):
                 if not download_subs(inputs[0]):
                     await message.try_to_edit('`Subtitles not available!`')
             else:
-                pass
+                await download_video(inputs[1], message)
 
 
 def get_url(movie_id):
@@ -59,21 +65,47 @@ def get_formats(url):
         urls.append({'format_id': item['format_id'].replace(
             'ಕನ್ನಡ', 'kn'), 'format': item['format'].replace('ಕನ್ನಡ', 'kn'), 'url': item['url']})
         # urls[item['format'].replace('ಕನ್ನಡ', 'kn')] = item['url']
-    return urls
+    return [url['format'] for url in urls]
 
 
-def download_video(format_id):
+async def download_video(format_id: str, message: Message):
+    def __progress(data: dict):
+        if ((time() - startTime) % 4) > 3.9:
+            if data['status'] == 'downloading':
+                eta = data.get('eta')
+                speed = data.get('speed')
+                if not (eta and speed):
+                    return
+                current = data.get('downloaded_bytes')
+                total = data.get("total_bytes")
+                progress_str = f"**FILENAME**: `{data['filename']}`\n" + \
+                    f"**Speed**: `{humanbytes(speed)}`\n" + \
+                    f"**ETA**: `{time_formatter(eta)}`"
+                if current and total:
+                    percentage = int(current) * 100 / int(total)
+                    fin = ''.join((Config.FINISHED_PROGRESS_STR
+                                   for i in range(floor(percentage / 5))))
+                    unfin = ''.join((Config.UNFINISHED_PROGRESS_STR
+                                     for i in range(20 - floor(percentage / 5))))
+                    progress_str = f"__Downloading__\n" + \
+                        f"```[{fin}{unfin}]```\n" + \
+                        f"**Progress**: `{round(percentage, 2)}%`\n" + \
+                        f"**Completed**: `{humanbytes(current)}`\n" + \
+                        f"**Total**: `{humanbytes(total)}`\n" + progress_str
+                if message.text != progress_str:
+                    asyncio.get_event_loop().run_until_complete(message.edit(progress_str))
     url = ''
+    startTime = time()
     for item in urls:
         if item['format_id'] == format_id:
             url = item['url']
-    ydl_opts = {
-        'outtmpl': f'{name}-{format_id}.mp4',
-        'noplaylist': True,
-        'progress_hooks': [my_hook],
-    }
-    with YoutubeDL(ydl_opts) as ydl2:
-        ydl2.download([url])
+    retcode = await _tubeDl([url], __progress, startTime, None)
+    if retcode == 0:
+        _fpath = glob.glob(os.path.join(
+            Config.DOWN_PATH, str(startTime), '*'))[0]
+        await message.edit(f"**YTDL completed in {round(time() - startTime)} seconds**\n`{_fpath}`")
+    else:
+        await message.edit(str(retcode))
 
 
 def my_hook(d):
