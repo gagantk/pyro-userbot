@@ -136,7 +136,7 @@ async def combine(message: Message):
             options = {'-vf': inputs[1], '-c:a': 'copy'}
         elif len(inputs) == 1:
             options = {'-c': 'copy'}
-        globalValues['output'] == output_file
+        globalValues['output'] = output_file
         setFF()
         if len(files) == 3:
             ff2 = globalValues['ff'].input(video_file).input(
