@@ -117,7 +117,7 @@ async def transcode(message: Message):
         await message.edit("Please read `.help transcode`", del_in=5)
 
 
-@gaganrobot.on_cmd('transcode', about={'header': 'Combine audio and video files', 'description': 'Combine audio and video files using ffmpeg', 'usage': '{tr}combine video.mp4 audio.mp4 out_file_name | [scale crop]', 'examples': ['{tr}combine video.mp4 audio.mp4 out_file_name | [scale crop]']})
+@gaganrobot.on_cmd('merge', about={'header': 'Combine audio and video files', 'description': 'Combine audio and video files using ffmpeg', 'usage': '{tr}merge video.mp4 audio.mp4 out_file_name | [scale crop]', 'examples': ['{tr}merge video.mp4 audio.mp4 out_file_name | [scale crop]']})
 async def combine(message: Message):
     ''' combine audio and video files '''
     await message.edit('Processing...')
