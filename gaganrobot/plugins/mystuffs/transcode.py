@@ -131,11 +131,13 @@ async def combine(message: Message):
         output_file = os.path.join(Config.DOWN_PATH, files[2])
         if len(inputs) == 2 and len(files) == 4:
             srt_file = os.path.join(Config.DOWN_PATH, files[3])
-            options = {'-vf': inputs[1], '-c:a': 'copy', '-c:s': 'copy'}
+            options = {'-vf': inputs[1], '-c:a': 'copy',
+                       '-c:s': 'copy', '-map': ['0:v:0', '1:a:0', '2:s:0']}
         elif len(inputs) == 2 and len(files) == 3:
-            options = {'-vf': inputs[1], '-c:a': 'copy'}
+            options = {'-vf': inputs[1], '-c:a': 'copy',
+                       '-map': ['0:v:0', '1:a:0']}
         elif len(inputs) == 1:
-            options = {'-c': 'copy'}
+            options = {'-c': 'copy', '-map': ['0:v:0', '1:a:0']}
         globalValues['output'] = output_file
         setFF()
         if len(files) == 3:
