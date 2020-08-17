@@ -129,6 +129,7 @@ async def combine(message: Message):
         video_file = os.path.join(Config.DOWN_PATH, files[0])
         audio_file = os.path.join(Config.DOWN_PATH, files[1])
         output_file = os.path.join(Config.DOWN_PATH, files[2])
+        globalValues['file'] = files[2]
         if len(inputs) == 2 and len(files) == 4:
             srt_file = os.path.join(Config.DOWN_PATH, files[3])
             options = {'-vf': inputs[1], '-c:a': 'copy',
@@ -139,6 +140,8 @@ async def combine(message: Message):
         elif len(inputs) == 1:
             options = {'-c': 'copy', '-map': ['0:v:0', '1:a:0']}
         globalValues['output'] = output_file
+        globalValues['total'] = int(ffmpeg.probe(
+            video_file)['format']['duration'].split('.')[0])
         setFF()
         if len(files) == 3:
             ff2 = globalValues['ff'].input(video_file).input(
