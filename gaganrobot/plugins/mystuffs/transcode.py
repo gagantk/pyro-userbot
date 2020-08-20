@@ -30,6 +30,7 @@ async def transcode(message: Message):
     globalValues['msg'] = message
     if message.input_str:
         inputs = [word.strip() for word in message.input_str.split('|')]
+        globalValues['type'] = 'transcode'
         if '-scopy' not in message.input_str:
             srt_file = ''
             if '-s' in message.input_str and len(inputs[0].split()) == 2:
@@ -76,20 +77,20 @@ async def transcode(message: Message):
             output_file = os.path.join(Config.DOWN_PATH, globalValues['file'])
             globalValues['output'] = output_file
             optionsDict = {'-b:v': bitrate + 'k', '-c:a': 'copy', '-metadata': f'title={metadata_file_name}',
-                           '-metadata:s:v:0': ['language=kan', 'title="https://t.me/Kannada_Movies_HDs"'],
-                           '-metadata:s:a:0': ['language=kan', 'title="https://t.me/Kannada_Movies_HDs"']}
+                           '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
+                           '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs']}
             if len(inputs) == 4 and '-s' not in inputs[3]:
                 optionsDict['-vf'] = f'scale={inputs[3]}'
             elif len(inputs) == 4 and '-s' in inputs[3]:
                 optionsDict['-c:s'] = 'copy'
                 optionsDict['-metadata:s:s:0'] = ['language=eng',
-                                                  'title="https://t.me/Kannada_Movies_HDs"']
+                                                  'title=https://t.me/Kannada_Movies_HDs']
                 optionsDict['-disposition:s:0'] = 'default'
             elif len(inputs) == 5 and '-s' in inputs[4]:
                 optionsDict['-vf'] = f'scale={inputs[3]}'
                 optionsDict['-c:s'] = 'copy'
                 optionsDict['-metadata:s:s:0'] = ['language=eng',
-                                                  'title="https://t.me/Kannada_Movies_HDs"']
+                                                  'title=https://t.me/Kannada_Movies_HDs']
                 optionsDict['-disposition:s:0'] = 'default'
             setFF()
             if srt_file:
@@ -107,8 +108,8 @@ async def transcode(message: Message):
             output_file = os.path.join(Config.DOWN_PATH, globalValues['file'])
             globalValues['output'] = output_file
             optionsDict = {'-c': 'copy', '-metadata': f'title={metadata_file_name}',
-                           '-metadata:s:v:0': ['language=kan', 'title="https://t.me/Kannada_Movies_HDs"'],
-                           '-metadata:s:a:0': ['language=kan', 'title="https://t.me/Kannada_Movies_HDs"']}
+                           '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
+                           '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs']}
             setFF()
             ff2 = globalValues['ff'].input(input_file).option(
                 'y').output(output_file, optionsDict)
@@ -142,6 +143,7 @@ async def combine(message: Message):
         globalValues['output'] = output_file
         globalValues['total'] = int(ffmpeg.probe(
             video_file)['format']['duration'].split('.')[0])
+        globalValues['type'] = 'merge'
         setFF()
         if len(files) == 3:
             ff2 = globalValues['ff'].input(video_file).input(
@@ -238,7 +240,8 @@ async def on_completed():
     # print('Completed')
     msg = globalValues['msg']
     caption = f"<b>{globalValues['file'].replace('.mkv', '')}</b>\n\n@Kannada_Movies_HDs\nhttps://t.me/Kannada_Movies_HDs"
-    await upload(msg, Path(globalValues['output']), upload_as_doc=True, caption=caption)
+    if globalValues['type'] == 'transcode':
+        await upload(msg, Path(globalValues['output']), upload_as_doc=True, caption=caption)
     del globalValues['ff']
     globalValues['ff'] = FFmpeg()
     pass
