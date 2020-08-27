@@ -156,6 +156,31 @@ async def combine(message: Message):
         await message.edit("Please read `.help combine`", del_in=5)
 
 
+@gaganrobot.on_cmd('crop', about={'header': 'Crop video files', 'description': 'Crop video files using ffmpeg', 'usage': '{tr}merge video.mp4 audio.mp4 out_file_name | [scale crop]', 'examples': ['{tr}merge video.mp4 audio.mp4 out_file_name | [scale crop]']})
+async def crop(message: Message):
+    ''' crop video files '''
+    await message.edit('Processing...')
+    global globalValues
+    globalValues['msg'] = message
+    if message.input_str:
+        inputs = [word.strip() for word in message.input_str.split('|')]
+        input_file = os.path.join(Config.DOWN_PATH, inputs[0])
+        output_file = os.path.join(
+            Config.DOWN_PATH, inputs[0].replace('.mp4', '') + '-crop.mp4')
+        options = {'-vf': f'crop={inputs[1]}', '-c:a': 'copy'}
+        globalValues['file'] = inputs[0].replace('.mp4', '') + '-crop.mp4'
+        globalValues['output'] = output_file
+        globalValues['total'] = int(ffmpeg.probe(
+            input_file)['format']['duration'].split('.')[0])
+        globalValues['type'] = 'crop'
+        setFF()
+        ff2 = globalValues['ff'].input(input_file).option(
+            'y').output(output_file, options)
+        await ff2.execute()
+    else:
+        await message.edit("Please read `.help combine`", del_in=5)
+
+
 def setFF():
     global ff
     ff = globalValues['ff']
