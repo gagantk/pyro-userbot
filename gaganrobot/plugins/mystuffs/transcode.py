@@ -181,8 +181,8 @@ async def crop(message: Message):
         await message.edit("Please read `.help crop`", del_in=5)
 
 
-@gaganrobot.on_cmd('sample', about={'header': 'Get sample video', 'description': 'Get sample 5 minutes video using ffmpeg', 'usage': '{tr}sample video.mp4', 'examples': ['{tr}sample video.mp4]})
-async def crop(message: Message):
+@gaganrobot.on_cmd('sample', about={'header': 'Get sample video', 'description': 'Get sample 5 minutes video using ffmpeg', 'usage': '{tr}sample video.mp4', 'examples': ['{tr}sample video.mp4']})
+async def sample(message: Message):
     ''' Get sample video '''
     await message.edit('Processing...')
     global globalValues
