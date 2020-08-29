@@ -197,7 +197,8 @@ async def sample(message: Message):
         globalValues['total'] = int(ffmpeg.probe(
             input_file)['format']['duration'].split('.')[0])
         globalValues['type'] = 'sample'
-        options = {'-ss': '00:00:00', '-t': '00:05:00', '-async': '1'}
+        options = {'-ss': '00:00:00', '-t': '00:05:00',
+                   '-c': 'copy', '-async': '1'}
         setFF()
         ff2 = globalValues['ff'].input(input_file).option(
             'y').output(output_file, options)
