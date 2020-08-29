@@ -156,7 +156,7 @@ async def combine(message: Message):
         await message.edit("Please read `.help combine`", del_in=5)
 
 
-@gaganrobot.on_cmd('crop', about={'header': 'Crop video files', 'description': 'Crop video files using ffmpeg', 'usage': '{tr}merge video.mp4 audio.mp4 out_file_name | [scale crop]', 'examples': ['{tr}merge video.mp4 audio.mp4 out_file_name | [scale crop]']})
+@gaganrobot.on_cmd('crop', about={'header': 'Crop video files', 'description': 'Crop video files using ffmpeg', 'usage': '{tr}crop video.mp4 | dimensions', 'examples': ['{tr}crop video.mp4 | 1280:584:0:0']})
 async def crop(message: Message):
     ''' crop video files '''
     await message.edit('Processing...')
@@ -178,7 +178,32 @@ async def crop(message: Message):
             'y').output(output_file, options)
         await ff2.execute()
     else:
-        await message.edit("Please read `.help combine`", del_in=5)
+        await message.edit("Please read `.help crop`", del_in=5)
+
+
+@gaganrobot.on_cmd('sample', about={'header': 'Get sample video', 'description': 'Get sample 5 minutes video using ffmpeg', 'usage': '{tr}sample video.mp4', 'examples': ['{tr}sample video.mp4]})
+async def crop(message: Message):
+    ''' Get sample video '''
+    await message.edit('Processing...')
+    global globalValues
+    globalValues['msg'] = message
+    if message.input_str:
+        input_file = os.path.join(Config.DOWN_PATH, message.input_str)
+        output_file = os.path.join(
+            Config.DOWN_PATH, message.input_str.replace('.mp4', '').replace('.mkv', '') + '-sample.mp4')
+        globalValues['file'] = message.input_str.replace(
+            '.mp4', '').replace('.mkv', '') + '-sample.mp4'
+        globalValues['output'] = output_file
+        globalValues['total'] = int(ffmpeg.probe(
+            input_file)['format']['duration'].split('.')[0])
+        globalValues['type'] = 'sample'
+        options = {'-ss': '00:00:00', '-t': '00:05:00', '-async': '1'}
+        setFF()
+        ff2 = globalValues['ff'].input(input_file).option(
+            'y').output(output_file, options)
+        await ff2.execute()
+    else:
+        await message.edit("Please read `.help sample`", del_in=5)
 
 
 def setFF():
@@ -265,7 +290,7 @@ async def on_completed():
     # print('Completed')
     msg = globalValues['msg']
     caption = f"<b>{globalValues['file'].replace('.mkv', '')}</b>\n\n@Kannada_Movies_HDs\nhttps://t.me/Kannada_Movies_HDs"
-    if globalValues['type'] == 'transcode':
+    if globalValues['type'] in ['transcode', 'sample']:
         await upload(msg, Path(globalValues['output']), upload_as_doc=True, caption=caption)
     del globalValues['ff']
     globalValues['ff'] = FFmpeg()
