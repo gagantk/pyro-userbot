@@ -113,9 +113,10 @@ async def ytDown(message: Message):
     if bool(message.flags):
         desiredFormat1 = str(message.flags.get('a', ''))
         desiredFormat2 = str(message.flags.get('v', ''))
-        useragent = str(message.flags.get('u', ''))
-        print(useragent)
-        if 'u' in message.flags:
+        useragent = None
+        if len(message.input_str.split(' | ')) == 2:
+            useragent = message.input_str.split(' | ')[1]
+            print(useragent)
             retcode = await _tubeDl([message.filtered_input_str], __progress, startTime, None, useragent)
         elif 'm' in message.flags:
             retcode = await _mp3Dl([message.filtered_input_str], __progress, startTime)
