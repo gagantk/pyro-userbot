@@ -72,9 +72,9 @@ async def ytDown(message: Message):
                 if current and total:
                     percentage = int(current) * 100 / int(total)
                     fin = ''.join((Config.FINISHED_PROGRESS_STR
-                                 for i in range(floor(percentage / 5))))
+                                   for i in range(floor(percentage / 5))))
                     unfin = ''.join((Config.UNFINISHED_PROGRESS_STR
-                                 for i in range(20 - floor(percentage / 5))))
+                                     for i in range(20 - floor(percentage / 5))))
                     progress_str = f"__Downloading__\n" + \
                         f"```[{fin}{unfin}]```\n" + \
                         f"**Progress**: `{round(percentage, 2)}%`\n" + \
@@ -113,7 +113,11 @@ async def ytDown(message: Message):
     if bool(message.flags):
         desiredFormat1 = str(message.flags.get('a', ''))
         desiredFormat2 = str(message.flags.get('v', ''))
-        if 'm' in message.flags:
+        useragent = str(message.flags.get('u', ''))
+        print(useragent)
+        if 'u' in message.flags:
+            retcode = await _tubeDl([message.filtered_input_str], __progress, startTime, None, useragent)
+        elif 'm' in message.flags:
             retcode = await _mp3Dl([message.filtered_input_str], __progress, startTime)
         elif all(k in message.flags for k in ("a", "v")):
             # 1st format must contain the video
@@ -204,7 +208,7 @@ def _supported(url):
 
 
 @pool.run_in_thread
-def _tubeDl(url: list, prog, starttime, uid=None):
+def _tubeDl(url: list, prog, starttime, uid=None, useragent=None):
     _opts = {'outtmpl': os.path.join(Config.DOWN_PATH, str(starttime),
                                      '%(title)s-%(format)s.%(ext)s'),
              'logger': LOGGER,
@@ -215,6 +219,8 @@ def _tubeDl(url: list, prog, starttime, uid=None):
     _opts.update(_quality)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+    if useragent:
+        ytdl.utils.std_headers['User-Agent'] = useragent
     try:
         x = ytdl.YoutubeDL(_opts)
         x.add_progress_hook(prog)
