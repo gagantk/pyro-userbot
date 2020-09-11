@@ -67,10 +67,10 @@ async def transcode(message: Message):
             bitrate, size_name = calculate_bitrate(
                 int(target_size), globalValues['total'], audio_bitrate)
             if len(file_name) == 2:
-                globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {size_name}.mkv"
+                globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - ESubs - {size_name}.mkv"
                 metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - ESubs - {size_name}"
             elif len(file_name) == 3:
-                globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {size_name}.mkv"
+                globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - ESubs - {size_name}.mkv"
                 metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - ESubs - {size_name}"
             print(globalValues['file'])
             print(len(globalValues['file']))
