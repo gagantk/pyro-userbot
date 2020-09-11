@@ -72,6 +72,8 @@ async def transcode(message: Message):
             elif len(file_name) == 3:
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {size_name}.mkv"
                 metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - ESubs - {size_name}"
+            print(globalValues['file'])
+            print(len(globalValues['file']))
             if len(globalValues['file']) > 64:
                 globalValues['file'] = globalValues['file'].replace(
                     'ESubs - ', '')
