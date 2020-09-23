@@ -35,13 +35,30 @@ async def transcode(message: Message):
             input_file = os.path.join(
                 Config.DOWN_PATH, inputs[0].strip())
             file_name = inputs[1].split('-')
-            globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {inputs[2]}MB.mkv"
-            metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {inputs[2]}MB"
+            if len(file_name) == 2:
+                globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {inputs[2]}MB.mkv"
+                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {inputs[2]}MB"
+            elif len(file_name) == 3 and 'ESubs' in file_name:
+                globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {inputs[2]}MB.mkv"
+                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {inputs[2]}MB"
+            elif len(file_name) == 3 and 'ESubs' not in file_name:
+                globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {inputs[2]}MB.mkv"
+                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {inputs[2]}MB"
+            elif len(file_name) == 4:
+                globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {file_name[3].strip()} - {inputs[2]}MB.mkv"
+                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {file_name[3].strip()} - x264 - AAC - {inputs[2]}MB"
             output_file = os.path.join(Config.DOWN_PATH, globalValues['file'])
             globalValues['output'] = output_file
-            optionsDict = {'-c': 'copy', '-metadata': f'title={metadata_file_name}',
-                           '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
-                           '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs']}
+            if '-subs' in message.input_str:
+                optionsDict = {'-c': 'copy', '-c:s': 'copy', '-metadata': f'title={metadata_file_name}',
+                               '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
+                               '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
+                               '-metadata:s:s:0': ['language=eng', 'title=https://t.me/Kannada_Movies_HDs'],
+                               '-disposition:s:0': 'default'}
+            else:
+                optionsDict = {'-c': 'copy', '-metadata': f'title={metadata_file_name}',
+                               '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
+                               '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs']}
             setFF()
             ff2 = globalValues['ff'].input(input_file).option(
                 'y').output(output_file, optionsDict)
@@ -72,8 +89,6 @@ async def transcode(message: Message):
             elif len(file_name) == 3:
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - ESubs - {size_name}.mkv"
                 metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - ESubs - {size_name}"
-            print(globalValues['file'])
-            print(len(globalValues['file']))
             if len(globalValues['file']) > 64:
                 globalValues['file'] = globalValues['file'].replace(
                     'ESubs - ', '')
@@ -82,7 +97,7 @@ async def transcode(message: Message):
             optionsDict = {'-c:v': 'copy', '-c:a': 'copy', '-c:s': 'copy', '-metadata': f'title={metadata_file_name}',
                            '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
                            '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
-                           '-metadata:s:s:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
+                           '-metadata:s:s:0': ['language=eng', 'title=https://t.me/Kannada_Movies_HDs'],
                            '-disposition:s:0': 'default'}
             setFF()
             ff2 = globalValues['ff'].input(input_file).input(srt_file).option(
