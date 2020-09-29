@@ -382,29 +382,29 @@ if Config.BOT_TOKEN and Config.OWNER_ID:
                 )
             )
         if '-' in inline_query.query:
-              _id, msg = inline_query.query.split('-', maxsplit=1)
-               if not msg:
-                    return
-                if not msg.strip().endswith(':'):
-                    return
-                try:
-                    user = await gaganrobot.get_users(_id.strip())
-                except Exception:  # pylint: disable=broad-except
-                    return
-                PRVT_MSGS[inline_query.id] = (
-                    user.id, user.first_name, msg.strip(': '))
-                prvte_msg = [[InlineKeyboardButton(
-                    "Show Message 🔐", callback_data=f"prvtmsg({inline_query.id})")]]
-                msg_c = f"🔒 A **private message** to {'@' + user.username}, "
-                msg_c += "Only he/she can open it."
-                results.append(
-                    InlineQueryResultArticle(
-                        id=uuid4(),
-                        title=f"A Private Msg to {user.first_name}",
-                        input_message_content=InputTextMessageContent(msg_c),
-                        description="Only he/she can open it",
-                        thumb_url="https://imgur.com/download/Inyeb1S",
-                        reply_markup=InlineKeyboardMarkup(prvte_msg)
-                    )
+            _id, msg = inline_query.query.split('-', maxsplit=1)
+            if not msg:
+                return
+            if not msg.strip().endswith(':'):
+                return
+            try:
+                user = await gaganrobot.get_users(_id.strip())
+            except Exception:  # pylint: disable=broad-except
+                return
+            PRVT_MSGS[inline_query.id] = (
+                user.id, user.first_name, msg.strip(': '))
+            prvte_msg = [[InlineKeyboardButton(
+                "Show Message 🔐", callback_data=f"prvtmsg({inline_query.id})")]]
+            msg_c = f"🔒 A **private message** to {'@' + user.username}, "
+            msg_c += "Only he/she can open it."
+            results.append(
+                InlineQueryResultArticle(
+                    id=uuid4(),
+                    title=f"A Private Msg to {user.first_name}",
+                    input_message_content=InputTextMessageContent(msg_c),
+                    description="Only he/she can open it",
+                    thumb_url="https://imgur.com/download/Inyeb1S",
+                    reply_markup=InlineKeyboardMarkup(prvte_msg)
                 )
+            )
         await inline_query.answer(results=results, cache_time=3)
