@@ -1,6 +1,5 @@
 import os
 import glob
-import asyncio
 from pathlib import Path
 from time import time
 from math import floor
@@ -57,31 +56,38 @@ __{uploader}__
                                                'the mp3 as a document']}, del_pre=True)
 async def ytDown(message: Message):
     """ download from a link """
+    edited = False
+    startTime = c_time = time()
+
     def __progress(data: dict):
-        if ((time() - startTime) % 4) > 3.9:
-            if data['status'] == 'downloading':
-                eta = data.get('eta')
-                speed = data.get('speed')
-                if not (eta and speed):
-                    return
-                current = data.get('downloaded_bytes')
-                total = data.get("total_bytes")
-                progress_str = f"**FILENAME**: `{data['filename']}`\n" + \
-                    f"**Speed**: `{humanbytes(speed)}`\n" + \
-                    f"**ETA**: `{time_formatter(eta)}`"
-                if current and total:
-                    percentage = int(current) * 100 / int(total)
-                    fin = ''.join((Config.FINISHED_PROGRESS_STR
-                                   for i in range(floor(percentage / 5))))
-                    unfin = ''.join((Config.UNFINISHED_PROGRESS_STR
-                                     for i in range(20 - floor(percentage / 5))))
-                    progress_str = f"__Downloading__\n" + \
-                        f"```[{fin}{unfin}]```\n" + \
-                        f"**Progress**: `{round(percentage, 2)}%`\n" + \
-                        f"**Completed**: `{humanbytes(current)}`\n" + \
-                        f"**Total**: `{humanbytes(total)}`\n" + progress_str
-                if message.text != progress_str:
-                    asyncio.get_event_loop().run_until_complete(message.edit(progress_str))
+        nonlocal edited, c_time
+        diff = time() - c_time
+        if data['status'] == "downloading" and (not edited or diff >= Config.EDIT_SLEEP_TIMEOUT):
+            c_time = time()
+            edited = True
+            eta = data.get('eta')
+            speed = data.get('speed')
+            if not (eta and speed):
+                return
+            current = data.get('downloaded_bytes')
+            total = data.get("total_bytes")
+            progress_str = f"**FILENAME**: `{data['filename']}`\n" + \
+                f"**Speed**: `{humanbytes(speed)}`\n" + \
+                f"**ETA**: `{time_formatter(eta)}`"
+            if current and total:
+                percentage = int(current) * 100 / int(total)
+                fin = ''.join((Config.FINISHED_PROGRESS_STR
+                               for i in range(floor(percentage / 5))))
+                unfin = ''.join((Config.UNFINISHED_PROGRESS_STR
+                                 for i in range(20 - floor(percentage / 5))))
+                progress_str = f"__Downloading__\n" + \
+                    f"```[{fin}{unfin}]```\n" + \
+                    f"**Progress**: `{round(percentage, 2)}%`\n" + \
+                    f"**Completed**: `{humanbytes(current)}`\n" + \
+                    f"**Total**: `{humanbytes(total)}`\n" + progress_str
+            gaganrobot.loop.create_task(message.edit(progress_str))
+            # if message.text != progress_str:
+            #     asyncio.get_event_loop().run_until_complete(message.edit(progress_str))
 
         # if ((time() - startTime) % 4) > 3.9:
         #     if data['status'] == "downloading":
@@ -130,7 +136,7 @@ async def ytDown(message: Message):
             retcode = await _tubeDl(
                 [message.filtered_input_str], __progress, startTime, desiredFormat)
         elif 'v' in message.flags:
-            desiredFormat = desiredFormat2+'+bestaudio'
+            desiredFormat = desiredFormat2 + '+bestaudio'
             retcode = await _tubeDl(
                 [message.filtered_input_str], __progress, startTime, desiredFormat)
         else:
@@ -140,8 +146,13 @@ async def ytDown(message: Message):
         retcode = await _tubeDl(
             [message.filtered_input_str], __progress, startTime, None)
     if retcode == 0:
-        _fpath = glob.glob(os.path.join(
-            Config.DOWN_PATH, str(startTime), '*'))[0]
+        _fpath = ''
+        for _path in glob.glob(os.path.join(Config.DOWN_PATH, str(startTime), '*')):
+            if not _path.lower().endswith((".jpg", ".png", ".webp")):
+                _fpath = _path
+        if not _fpath:
+            await message.err("nothing found !")
+            return
         await message.edit(f"**YTDL completed in {round(time() - startTime)} seconds**\n`{_fpath}`")
         if 't' in message.flags:
             await upload(message, Path(_fpath))
@@ -172,7 +183,8 @@ def _yt_description(link):
     try:
         x = ytdl.YoutubeDL({'no-playlist': True, 'logger': LOGGER}).extract_info(
             link, download=False)
-    except ytdl.utils.YoutubeDLError as y_e:
+    except Exception as y_e:  # pylint: disable=broad-except
+        LOGGER.exception(y_e)
         return y_e
     else:
         return x.get('description', '')
@@ -191,8 +203,9 @@ def _yt_getInfo(link):
         for i in formats:
             out += (f"`{i.get('format_id', '')} | {i.get('format_note', None)}"
                     f" | {i.get('ext', None)}`\n")
-    except ytdl.utils.YoutubeDLError as e:
-        return e
+    except Exception as y_e:  # pylint: disable=broad-except
+        LOGGER.exception(y_e)
+        return y_e
     else:
         return {'thumb': thumb, 'table': out, 'uploader': x.get('uploader_id', None),
                 'title': x.get('title', None)}
@@ -201,11 +214,7 @@ def _yt_getInfo(link):
 @pool.run_in_thread
 def _supported(url):
     ies = ytdl.extractor.gen_extractors()
-    for ie in ies:
-        if ie.suitable(url) and ie.IE_NAME != 'generic':
-            # Site has dedicated extractor
-            return True
-    return False
+    return any(ie.suitable(url) and ie.IE_NAME != 'generic' for ie in ies)
 
 
 @pool.run_in_thread
@@ -213,21 +222,22 @@ def _tubeDl(url: list, prog, starttime, uid=None, useragent=None):
     _opts = {'outtmpl': os.path.join(Config.DOWN_PATH, str(starttime),
                                      '%(title)s-%(format)s.%(ext)s'),
              'logger': LOGGER,
+             'writethumbnail': True,
+             'prefer_ffmpeg': True,
              'postprocessors': [
                  {'key': 'FFmpegMetadata'}
     ]}
     _quality = {'format': 'bestvideo+bestaudio/best' if not uid else str(uid)}
     _opts.update(_quality)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     if useragent:
         ytdl.utils.std_headers['User-Agent'] = useragent
     try:
         x = ytdl.YoutubeDL(_opts)
         x.add_progress_hook(prog)
         dloader = x.download(url)
-    except ytdl.utils.YoutubeDLError as e:
-        return e
+    except Exception as y_e:  # pylint: disable=broad-except
+        LOGGER.exception(y_e)
+        return y_e
     else:
         return dloader
     finally:
@@ -239,14 +249,16 @@ def _mp3Dl(url, prog, starttime):
     _opts = {'outtmpl': os.path.join(Config.DOWN_PATH, str(starttime), '%(title)s.%(ext)s'),
              'logger': LOGGER,
              'writethumbnail': True,
+             'prefer_ffmpeg': True,
+             'format': 'bestaudio/best',
              'postprocessors': [
                  {
                      'key': 'FFmpegExtractAudio',
                      'preferredcodec': 'mp3',
                      'preferredquality': '320',
                  },
-                 {'key': 'EmbedThumbnail'},
-                 {'key': 'FFmpegMetadata'},
+                 # {'key': 'EmbedThumbnail'},  ERROR: Conversion failed!
+                 {'key': 'FFmpegMetadata'}
     ]}
     _quality = {'format': 'bestaudio/best'}
     _opts.update(_quality)
@@ -256,9 +268,8 @@ def _mp3Dl(url, prog, starttime):
         x = ytdl.YoutubeDL(_opts)
         x.add_progress_hook(prog)
         dloader = x.download(url)
-    except ytdl.utils.YoutubeDLError as e:
-        return e
+    except Exception as y_e:  # pylint: disable=broad-except
+        LOGGER.exception(y_e)
+        return y_e
     else:
         return dloader
-    finally:
-        loop.close()

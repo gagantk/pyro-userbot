@@ -1,6 +1,6 @@
 # pylint: disable=missing-module-docstring
 
-from pyrogram import Filters
+from pyrogram import filters
 
 from .database import get_collection
 from .types.bound import Message

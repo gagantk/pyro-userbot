@@ -2,10 +2,11 @@ from math import ceil
 from uuid import uuid4
 from typing import List, Callable, Dict, Union, Any
 
-from pyrogram import (
+from pyrogram import filters
+from pyrogram.types import (
     InlineQueryResultArticle, InputTextMessageContent,
     InlineKeyboardMarkup, InlineKeyboardButton,
-    Filters, CallbackQuery, InlineQuery)
+    CallbackQuery, InlineQuery)
 from pyrogram.errors.exceptions.bad_request_400 import MessageNotModified, MessageIdInvalid
 
 from gaganrobot import gaganrobot, Message, Config, get_collection
@@ -21,6 +22,7 @@ _CATEGORY = {
     'plugins': '💎'
 }
 SAVED_SETTINGS = get_collection("CONFIGS")
+PRVT_MSGS = {}
 
 
 async def _init() -> None:
@@ -36,6 +38,8 @@ async def helpme(message: Message) -> None:  # pylint: disable=missing-function-
         out_str = f"""⚒ <b><u>(<code>{len(plugins)}</code>) Plugin(s) Available</u></b>\n\n"""
         cat_plugins = gaganrobot.manager.get_all_plugins()
         for cat in sorted(cat_plugins):
+            if cat == "plugins":
+                continue
             out_str += (f"    {_CATEGORY.get(cat, '📁')} <b>{cat}</b> "
                         f"(<code>{len(cat_plugins[cat])}</code>) :   <code>"
                         + "</code>    <code>".join(sorted(cat_plugins[cat])) + "</code>\n\n")
@@ -194,6 +198,19 @@ if Config.BOT_TOKEN and Config.OWNER_ID:
             text, buttons = plugin_data(cur_pos)
         await callback_query.edit_message_text(
             text, reply_markup=InlineKeyboardMarkup(buttons))
+
+    @ubot.on_callback_query(filters=filters.regex(pattern=r"prvtmsg\((.+)\)"))
+    async def prvt_msg(_, c_q: CallbackQuery):
+        msg_id = str(c_q.matches[0].group(1))
+        if msg_id not in PRVT_MSGS:
+            await c_q.answer("message now outdated !", show_alert=True)
+            return
+        user_id, flname, msg = PRVT_MSGS[msg_id]
+        if c_q.from_user.id == user_id or c_q.from_user.id == Config.OWNER_ID:
+            await c_q.answer(msg, show_alert=True)
+        else:
+            await c_q.answer(
+                f"Only {flname} can see this Private Msg... 😔", show_alert=True)
 
     def is_filter(name: str) -> bool:
         split_ = name.split('.')
@@ -364,4 +381,30 @@ if Config.BOT_TOKEN and Config.OWNER_ID:
                     reply_markup=InlineKeyboardMarkup(main_menu_buttons())
                 )
             )
-        await inline_query.answer(results=results, cache_time=1)
+        if '-' in inline_query.query:
+              _id, msg = inline_query.query.split('-', maxsplit=1)
+               if not msg:
+                    return
+                if not msg.strip().endswith(':'):
+                    return
+                try:
+                    user = await gaganrobot.get_users(_id.strip())
+                except Exception:  # pylint: disable=broad-except
+                    return
+                PRVT_MSGS[inline_query.id] = (
+                    user.id, user.first_name, msg.strip(': '))
+                prvte_msg = [[InlineKeyboardButton(
+                    "Show Message 🔐", callback_data=f"prvtmsg({inline_query.id})")]]
+                msg_c = f"🔒 A **private message** to {'@' + user.username}, "
+                msg_c += "Only he/she can open it."
+                results.append(
+                    InlineQueryResultArticle(
+                        id=uuid4(),
+                        title=f"A Private Msg to {user.first_name}",
+                        input_message_content=InputTextMessageContent(msg_c),
+                        description="Only he/she can open it",
+                        thumb_url="https://imgur.com/download/Inyeb1S",
+                        reply_markup=InlineKeyboardMarkup(prvte_msg)
+                    )
+                )
+        await inline_query.answer(results=results, cache_time=3)

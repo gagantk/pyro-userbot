@@ -2,21 +2,21 @@
 
 __all__ = ['RawClient']
 
+import time
 from typing import Optional
 
-import nest_asyncio
 from pyrogram import Client
 
-from .. import types, client  # pylint: disable=unused-import
+import gaganrobot
 
 
 class RawClient(Client):
     """ gaganrobot raw client """
     DUAL_MODE = False
+    LAST_OUTGOING_TIME = time.time()
 
-    def __init__(self, bot: Optional['client._GaganRobotBot'] = None, **kwargs) -> None:
+    def __init__(self, bot: Optional['gaganrobot.core.client._GaganRobotBot'] = None, **kwargs) -> None:
         self._bot = bot
         super().__init__(**kwargs)
-        self._channel = types.new.ChannelLogger(self, "CORE")
-        types.new.Conversation.init(self)
-        nest_asyncio.apply()
+        self._channel = gaganrobot.core.types.new.ChannelLogger(self, "CORE")
+        gaganrobot.types.new.Conversation.init(self)

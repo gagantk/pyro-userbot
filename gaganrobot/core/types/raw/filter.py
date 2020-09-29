@@ -5,9 +5,10 @@ __all__ = ['Filter', 'clear_db']
 import asyncio
 from typing import List, Tuple, Callable, Any, Optional, Union
 
-from pyrogram import Filters, MessageHandler
-from pyrogram.client.handlers.handler import Handler
-from pyrogram.client.filters.filter import Filter as RawFilter
+from pyrogram import filters as rawfilters
+from pyrogram.handlers.handler import Handler
+from pyrogram.filters import Filter as RawFilter
+from pyrogram.handlers import MessageHandler
 
 from gaganrobot import logging, Config
 from ... import client as _client, get_collection  # pylint: disable=unused-import
@@ -102,7 +103,8 @@ class Filter:
                  check_invite_perm: bool,
                  check_pin_perm: bool,
                  name: str = '') -> None:
-        self.filters = Filters.create(lambda _, __: self.is_enabled) & filters
+        self.filters = rawfilters.create(
+            lambda _, __, ___: self.is_enabled) & filters
         self.name = name
         self.scope: List[str] = []
         if allow_bots:
@@ -137,7 +139,7 @@ class Filter:
         self._handler: Handler
 
     def __repr__(self) -> str:
-        return f"<filter - {self.name}>"
+        return f"<filter {self.name}>"
 
     @property
     def is_enabled(self) -> bool:
@@ -172,7 +174,7 @@ class Filter:
         self.doc = func.__doc__.strip() if func.__doc__ else None
         self._func = func
         self._handler = MessageHandler(template, self.filters)
-        _LOG.debug(_LOG_STR, f"updated filter -> {self.name}")
+        _LOG.debug(_LOG_STR, f"updated {self}")
 
     async def enable(self) -> str:
         """ enable the filter """
@@ -180,7 +182,7 @@ class Filter:
             return ''
         self._enabled = True
         await _enable(self.name)
-        _LOG.debug(_LOG_STR, f"enabled filter -> {self.name}")
+        _LOG.debug(_LOG_STR, f"enabled {self}")
         return self.name
 
     async def disable(self) -> str:
@@ -189,7 +191,7 @@ class Filter:
             return ''
         self._enabled = False
         await _disable(self.name)
-        _LOG.debug(_LOG_STR, f"disabled filter -> {self.name}")
+        _LOG.debug(_LOG_STR, f"disabled {self}")
         return self.name
 
     async def load(self) -> str:
@@ -202,7 +204,7 @@ class Filter:
             self._client._bot.add_handler(self._handler, self._group)
         self._loaded = True
         await _load(self.name)
-        _LOG.debug(_LOG_STR, f"loaded filter -> {self.name}")
+        _LOG.debug(_LOG_STR, f"loaded {self}")
         return self.name
 
     async def unload(self) -> str:
@@ -215,5 +217,5 @@ class Filter:
             self._client._bot.remove_handler(self._handler, self._group)
         self._loaded = False
         await _unload(self.name)
-        _LOG.debug(_LOG_STR, f"unloaded filter -> {self.name}")
+        _LOG.debug(_LOG_STR, f"unloaded {self}")
         return self.name

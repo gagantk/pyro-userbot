@@ -33,6 +33,8 @@ REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob"
 G_DRIVE_DIR_MIME_TYPE = "application/vnd.google-apps.folder"
 G_DRIVE_FILE_LINK = "📄 <a href='https://drive.google.com/open?id={}'>{}</a> __({})__"
 G_DRIVE_FOLDER_LINK = "📁 <a href='https://drive.google.com/drive/folders/{}'>{}</a> __(folder)__"
+_GDRIVE_ID = re.compile(
+    r'https://drive.google.com/[\w\?\./&=]+([-\w]{33}|(?<=[/=])0(?:A[-\w]{17}|B[-\w]{26}))')
 
 _LOG = gaganrobot.getLogger(__name__)
 _SAVED_SETTINGS = get_collection("CONFIGS")
@@ -226,7 +228,7 @@ class _GDrive:
             c_time = time.time()
             response = None
             while response is None:
-                status, response = u_file_obj.next_chunk()
+                status, response = u_file_obj.next_chunk(num_retries=5)
                 if self._is_canceled:
                     raise ProcessCanceled
                 if status:
@@ -326,7 +328,7 @@ class _GDrive:
             c_time = time.time()
             done = False
             while done is False:
-                status, done = d_file_obj.next_chunk()
+                status, done = d_file_obj.next_chunk(num_retries=5)
                 if self._is_canceled:
                     raise ProcessCanceled
                 if status:
@@ -596,8 +598,7 @@ class Worker(_GDrive):
         link = self._message.input_str
         if filter_str:
             link = self._message.filtered_input_str
-        found = re.search(
-            r'https://drive.google.com/[\w\?\./&=]+([-\w]{33}|(?<=/)0A[-\w]{17})', link)
+        found = _GDRIVE_ID.search(link)
         if found and 'folder' in link:
             out = (found.group(1), "folder")
         elif found:
@@ -796,7 +797,7 @@ class Worker(_GDrive):
                         speed,
                         estimated_total_time)
                     count += 1
-                    if count >= 5:
+                    if count >= Config.EDIT_SLEEP_TIMEOUT:
                         count = 0
                         await self._message.try_to_edit(
                             progress_str, disable_web_page_preview=True)
@@ -814,7 +815,7 @@ class Worker(_GDrive):
                 file_path.strip()), file_name.strip())
             os.rename(file_path.strip(), new_path)
             file_path = new_path
-        await self._message.edit("`Loading GDrive Upload...`")
+        await self._message.try_to_edit("`Loading GDrive Upload...`")
         pool.submit_thread(self._upload, file_path)
         start_t = datetime.now()
         count = 0
@@ -822,7 +823,7 @@ class Worker(_GDrive):
             count += 1
             if self._message.process_is_canceled:
                 self._cancel()
-            if self._progress is not None and count >= 5:
+            if self._progress is not None and count >= Config.EDIT_SLEEP_TIMEOUT:
                 count = 0
                 await self._message.try_to_edit(self._progress)
             await asyncio.sleep(1)
@@ -843,7 +844,7 @@ class Worker(_GDrive):
     @creds_dec
     async def download(self) -> None:
         """ Download file/folder from GDrive """
-        await self._message.edit("`Loading GDrive Download...`")
+        await self._message.try_to_edit("`Loading GDrive Download...`")
         file_id, _ = self._get_file_id()
         pool.submit_thread(self._download, file_id)
         start_t = datetime.now()
@@ -852,7 +853,7 @@ class Worker(_GDrive):
             count += 1
             if self._message.process_is_canceled:
                 self._cancel()
-            if self._progress is not None and count >= 5:
+            if self._progress is not None and count >= Config.EDIT_SLEEP_TIMEOUT:
                 count = 0
                 await self._message.try_to_edit(self._progress)
             await asyncio.sleep(1)
@@ -874,7 +875,7 @@ class Worker(_GDrive):
         if not self._parent_id:
             await self._message.edit("First set parent path by `.gset`", del_in=5)
             return
-        await self._message.edit("`Loading GDrive Copy...`")
+        await self._message.try_to_edit("`Loading GDrive Copy...`")
         file_id, _ = self._get_file_id()
         pool.submit_thread(self._copy, file_id)
         start_t = datetime.now()
@@ -883,7 +884,7 @@ class Worker(_GDrive):
             count += 1
             if self._message.process_is_canceled:
                 self._cancel()
-            if self._progress is not None and count >= 5:
+            if self._progress is not None and count >= Config.EDIT_SLEEP_TIMEOUT:
                 count = 0
                 await self._message.try_to_edit(self._progress)
             await asyncio.sleep(1)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-declare -r pVer=$(sed -E 's/\w+ ([2-3])\.([0-9]+)\.([0-9]+)/\1.\2.\3/g' < <(python3.8 -V))
+declare -r pVer=$(sed -E 's/\w+ 3\.8\.([0-9]+)/3.8.\1/g' < <(python3.8 -V 2> /dev/null))
 
 log() {
     local text="$*"
@@ -9,13 +9,13 @@ log() {
 }
 
 quit() {
-    local err="\t:: ERROR :: $1\nExiting With SIGTERM ..."
+    local err="\t:: ERROR :: $1\nExiting With SIGTERM (143) ..."
     if (( getMessageCount )); then
         replyLastMessage "$err"
     else
         log "$err"
     fi
-    exit 1
+    exit 143
 }
 
 runPythonCode() {
@@ -34,6 +34,13 @@ gitClone() {
     git clone "$@" &> /dev/null
 }
 
+remoteIsExist() {
+    grep -q $1 < <(git remote)
+}
+addHeroku() {
+    git remote add heroku $HEROKU_GIT_URL
+}
+
 addUpstream() {
     git remote add $UPSTREAM_REMOTE ${UPSTREAM_REPO%.git}.git
 }
@@ -44,6 +51,15 @@ updateUpstream() {
 
 fetchUpstream() {
     git fetch $UPSTREAM_REMOTE &> /dev/null
+}
+
+fetchBranches() {
+    local r_bs l_bs
+    r_bs=$(grep -oP '(?<=refs/heads/)\w+' < <(git ls-remote --heads $UPSTREAM_REMOTE))
+    l_bs=$(grep -oP '\w+' < <(git branch))
+    for r_b in $r_bs; do
+        [[ $l_bs =~ $r_b ]] || git branch $r_b $UPSTREAM_REMOTE/$r_b &> /dev/null
+    done
 }
 
 upgradePip() {

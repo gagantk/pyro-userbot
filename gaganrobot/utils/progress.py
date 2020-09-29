@@ -17,14 +17,15 @@ async def progress(current: int,
                    message: 'gaganrobot.Message',
                    ud_type: str,
                    file_name: str = '',
-                   delay: int = 5) -> None:
+                   delay: int = gaganrobot.Config.EDIT_SLEEP_TIMEOUT) -> None:
     """ progress function """
     if message.process_is_canceled:
         await message.client.stop_transmission()
     task_id = f"{message.chat.id}.{message.message_id}"
     if current == total:
-        if task_id in _TASKS:
-            del _TASKS[task_id]
+        if task_id not in _TASKS:
+            return
+        del _TASKS[task_id]
         try:
             await message.try_to_edit("`finalizing process ...`")
         except FloodWait as f_e:

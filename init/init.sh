@@ -4,6 +4,9 @@
 . init/utils.sh
 . init/checks.sh
 
+trap handleSigTerm TERM
+trap handleSigInt INT
+
 initGaganRobot() {
     printLogo
     assertPrerequisites
@@ -19,6 +22,19 @@ startGaganRobot() {
 
 stopGaganRobot() {
     sendMessage "Exiting GaganRobot ..."
+}
+
+handleSigTerm() {
+    log "Exiting With SIGTERM (143) ..."
+    stopGaganRobot
+    endLogBotPolling
+    exit 143
+}
+handleSigInt() {
+    log "Exiting With SIGINT (130) ..."
+    stopGaganRobot
+    endLogBotPolling
+    exit 130
 }
 
 runGaganRobot() {

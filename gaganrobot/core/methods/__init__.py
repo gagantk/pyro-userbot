@@ -10,4 +10,4 @@ from .utils import Utils
 
 
 class Methods(Chats, Decorators, Messages, Users, Utils):
-    """ userge.methods """
+    """ gaganrobot.methods """

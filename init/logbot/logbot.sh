@@ -1,4 +1,4 @@
 #!/bin/bash
 
-. init/logbot/core/init.sh
-. init/logbot/methods/init.sh
+. init/logbot/core/core.sh
+. init/logbot/methods/methods.sh
