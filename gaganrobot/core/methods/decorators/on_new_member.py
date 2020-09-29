@@ -2,8 +2,8 @@
 
 __all__ = ['OnNewMember']
 
-from pyrogram import Filters
-from pyrogram.client.filters.filter import Filter as RawFilter
+from pyrogram import filters
+from pyrogram.filters import Filter as RawFilter
 
 from . import RawDecorator
 
@@ -18,8 +18,8 @@ class OnNewMember(RawDecorator):  # pylint: disable=missing-class-docstring
         """\nDecorator for handling new members
 
         Parameters:
-            welcome_chats (:obj:`~pyrogram.Filters.chat`):
-                Pass Filters.chat to allow only a subset of
+            welcome_chats (:obj:`~pyrogram.filters.chat`):
+                Pass filters.chat to allow only a subset of
                 messages to be passed in your function.
 
             group (``int``, *optional*):
@@ -35,6 +35,6 @@ class OnNewMember(RawDecorator):  # pylint: disable=missing-class-docstring
                 If ``True``, check downpath and make if not exist, defaults to False.
         """
         return self.on_filters(
-            filters=Filters.group & Filters.new_chat_members & welcome_chats,
+            filters=filters.group & filters.new_chat_members & welcome_chats,
             group=group, allow_via_bot=allow_via_bot,
             check_client=check_client, check_downpath=check_downpath)

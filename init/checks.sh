@@ -157,7 +157,7 @@ _checkUnoffPlugins() {
         installReq Userge-Plugins
         editLastMessage "\t\tCleaning ..."
         rm -rf userge/plugins/unofficial/
-        mv Userge-Plugins/plugins/ userge/plugins/unofficial/
+        mv Userge-Plugins/plugins/ gaganrobot/plugins/unofficial/
         cp -r Userge-Plugins/resources/* resources/
         rm -rf Userge-Plugins/
         deleteLastMessage

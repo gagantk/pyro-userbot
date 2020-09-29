@@ -10,7 +10,8 @@ from ... import types
 class Conversation:  # pylint: disable=missing-class-docstring
     def conversation(self,
                      chat_id: Union[str, int],
-                     *, timeout: Union[int, float] = 10,
+                     *, user_id: Union[str, int] = 0,
+                     timeout: Union[int, float] = 10,
                      limit: int = 10) -> 'types.new.Conversation':
         """\nThis returns new conversation object.
 
@@ -30,4 +31,4 @@ class Conversation:  # pylint: disable=missing-class-docstring
                 set conversation message limit.
                 defaults to 10.
         """
-        return types.new.Conversation(self, chat_id, timeout, limit)
+        return types.new.Conversation(self, chat_id, user_id, timeout, limit)
