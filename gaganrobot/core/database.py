@@ -7,8 +7,7 @@ from typing import List
 from motor.motor_asyncio import AsyncIOMotorClient
 from motor.core import AgnosticClient, AgnosticDatabase, AgnosticCollection
 
-from gaganrobot import logging, Config
-from gaganrobot import logbot
+from gaganrobot import logging, Config, logbot
 
 _LOG = logging.getLogger(__name__)
 _LOG_STR = "$$$>>> %s <<<$$$"

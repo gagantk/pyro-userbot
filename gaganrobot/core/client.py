@@ -2,9 +2,8 @@
 
 __all__ = ['GaganRobot']
 
-import os
-import sys
 import time
+import signal
 import asyncio
 import importlib
 from types import ModuleType
@@ -47,7 +46,9 @@ class _AbstractGaganRobot(Methods, RawClient):
         """ returns client is bot or not """
         if self._bot is not None:
             return hasattr(self, 'ubot')
-        return bool(Config.BOT_TOKEN)
+        if Config.BOT_TOKEN:
+            return True
+        return False
 
     @property
     def uptime(self) -> str:
@@ -183,7 +184,7 @@ class GaganRobot(_AbstractGaganRobot):
                 _LOG.info(_LOG_STR, "Idling GaganRobot")
                 logbot.edit_last_msg("GaganRobot has Started Successfully !")
                 logbot.end()
-                run(GaganRobot.idle())
+                idle()
             _LOG.info(_LOG_STR, "Exiting GaganRobot")
             for task in running_tasks:
                 task.cancel()
