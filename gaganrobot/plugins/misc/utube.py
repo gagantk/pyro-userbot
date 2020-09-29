@@ -240,8 +240,6 @@ def _tubeDl(url: list, prog, starttime, uid=None, useragent=None):
         return y_e
     else:
         return dloader
-    finally:
-        loop.close()
 
 
 @pool.run_in_thread
@@ -260,10 +258,6 @@ def _mp3Dl(url, prog, starttime):
                  # {'key': 'EmbedThumbnail'},  ERROR: Conversion failed!
                  {'key': 'FFmpegMetadata'}
     ]}
-    _quality = {'format': 'bestaudio/best'}
-    _opts.update(_quality)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     try:
         x = ytdl.YoutubeDL(_opts)
         x.add_progress_hook(prog)
