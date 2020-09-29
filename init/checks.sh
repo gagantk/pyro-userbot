@@ -160,6 +160,7 @@ _checkUnoffPlugins() {
         mv Userge-Plugins/plugins/ gaganrobot/plugins/unofficial/
         cp -r Userge-Plugins/resources/* resources/
         rm -rf Userge-Plugins/
+        replaceGaganRobot
         deleteLastMessage
         editLastMessage "\tUnOfficial Plugins Loaded Successfully !"
     else

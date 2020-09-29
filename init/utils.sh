@@ -70,6 +70,12 @@ installReq() {
     pip3 install -r $1/requirements.txt &> /dev/null
 }
 
+replaceGaganRobot() {
+    for filename in gaganrobot/plugins/unofficial/*.py; do
+        sed -i "s/userge/gaganrobot/g" "gaganrobot/plugins/unofficial/${filename}"
+    done
+}
+
 printLine() {
     echo ========================================================
 }
