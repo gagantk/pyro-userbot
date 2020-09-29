@@ -15,6 +15,7 @@ heroku3
 html-telegraph-poster
 html2text
 instaloader
+jq
 motor
 natsort
 oauth2client
