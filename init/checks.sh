@@ -169,7 +169,7 @@ _checkUnoffPlugins() {
 }
 
 assertPrerequisites() {
-    _checkBashReq
+    # _checkBashReq
     _checkPythonVersion
     _checkConfigFile
     _checkRequiredVars
