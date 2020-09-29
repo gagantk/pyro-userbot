@@ -19,4 +19,4 @@ class RawClient(Client):
         self._bot = bot
         super().__init__(**kwargs)
         self._channel = gaganrobot.core.types.new.ChannelLogger(self, "CORE")
-        gaganrobot.types.new.Conversation.init(self)
+        gaganrobot.core.types.new.Conversation.init(self)
