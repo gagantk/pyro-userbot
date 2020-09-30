@@ -23,7 +23,7 @@ Pillow==7.1.0
 psutil
 pybase64
 pyrogram>=1.0.7
-pyee
+pyee==7.0.2
 pySmartDL
 pysrt
 python-dotenv
