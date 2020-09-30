@@ -72,7 +72,10 @@ installReq() {
 
 replaceGaganRobot() {
     for filename in gaganrobot/plugins/unofficial/*.py; do
-        sed -i "s/userge/gaganrobot/g" "gaganrobot/plugins/unofficial/${filename}"
+        sed -i "s/userge/gaganrobot/g" "${filename}"
+    done
+    for filename in gaganrobot/plugins/unofficial/plugins/*.py; do
+        sed -i "s/userge/gaganrobot/g" "${filename}"
     done
 }
 
