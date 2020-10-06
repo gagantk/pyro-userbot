@@ -201,12 +201,14 @@ async def doc_upload(message: Message, path, del_path: bool = False, extra: str 
     start_t = datetime.now()
     thumb = await get_thumb(strpath)
     await message.client.send_chat_action(message.chat.id, "upload_document")
+    if not caption:
+        caption = path.name
     try:
         msg = await message.client.send_document(
             chat_id=message.chat.id,
             document=strpath,
             thumb=thumb,
-            caption=path.name,
+            caption=caption,
             parse_mode="html",
             disable_notification=True,
             progress=progress,
