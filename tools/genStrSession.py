@@ -18,7 +18,7 @@ async def genStrSession() -> None:  # pylint: disable=missing-function-docstring
     ) as gaganrobot:
         print("\nprocessing...")
         await gaganrobot.send_message(
-            "me", f"#GAGANROBOT #HU_STRING_SESSION\n\n```{gaganrobot.export_session_string()}```")
+            "me", f"#GAGANROBOT #HU_STRING_SESSION\n\n```{await gaganrobot.export_session_string()}```")
         print("Done !, session string has been sent to saved messages!")
 
 if __name__ == "__main__":

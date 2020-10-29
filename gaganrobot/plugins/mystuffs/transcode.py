@@ -389,22 +389,22 @@ async def on_error(code):
 
 def calculate_bitrate(size, total, audio_bitrate):
     audio_bitrate = round(audio_bitrate / 1000)
-    if size == 400:
+    if size <= 400:
         bitrate = round(size * 8 * 1024 / total - audio_bitrate + 10)
         mod = bitrate % 5
         if mod != 0:
             bitrate = bitrate + 5 - mod
-    elif size == 700:
+    elif size > 400 and size <= 700:
         bitrate = round(size * 8 * 1024 / total - audio_bitrate + 15)
         mod = bitrate % 5
         if mod != 0:
             bitrate = bitrate + 5 - mod
-    elif size == 900:
+    elif size > 700 and size <= 900:
         bitrate = round(size * 8 * 1024 / total - audio_bitrate + 20)
         mod = bitrate % 5
         if mod != 0:
             bitrate = bitrate + 5 - mod
-    elif size > 1100 and size < 1500:
+    elif size > 900 and size <= 1500:
         bitrate = round(size * 8 * 1024 / total - audio_bitrate + 40)
         mod = bitrate % 5
         if mod != 0:
