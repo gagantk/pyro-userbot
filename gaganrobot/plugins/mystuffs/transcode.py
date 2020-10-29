@@ -62,6 +62,12 @@ async def transcode(message: Message):
             elif len(file_name) == 4:
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {file_name[3].strip()} - {size_name}.mkv"
                 metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {file_name[3].strip()} - x264 - AAC - {size_name}"
+            if len(globalValues['file']) > 64:
+                globalValues['file'] = globalValues['file'].replace(
+                    '- x264 ', '')
+                if len(globalValues['file']) > 64:
+                    globalValues['file'] = globalValues['file'].replace(
+                        '- ESubs ', '')
             output_file = os.path.join(Config.DOWN_PATH, globalValues['file'])
             globalValues['output'] = output_file
             if '-subs' in message.input_str:
