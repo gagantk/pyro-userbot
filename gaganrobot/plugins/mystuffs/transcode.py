@@ -34,7 +34,7 @@ async def transcode(message: Message):
         if '-scopy' in message.input_str:
             input_file = os.path.join(
                 Config.DOWN_PATH, inputs[0].strip())
-            file_name = inputs[1].split('-')
+            file_name = [data.strip() for data in inputs[1].split('-')]
             target_size = inputs[2]
             try:
                 data = ffmpeg.probe(input_file)
@@ -93,7 +93,7 @@ async def transcode(message: Message):
                 Config.DOWN_PATH, inputs[0].split()[0].strip())
             srt_file = os.path.join(
                 Config.DOWN_PATH, inputs[0].split()[1].strip())
-            file_name = inputs[1].split('-')
+            file_name = [data.strip() for data in inputs[1].split('-')]
             globalValues['total'] = int(ffmpeg.probe(
                 input_file)['format']['duration'].split('.')[0])
             target_size = inputs[2]
@@ -137,7 +137,7 @@ async def transcode(message: Message):
                     Config.DOWN_PATH, inputs[0].split()[0].strip())
             else:
                 input_file = os.path.join(Config.DOWN_PATH, inputs[0])
-            file_name = inputs[1].split('-')
+            file_name = [data.strip() for data in inputs[1].split('-')]
             target_size = inputs[2]
             globalValues['total'] = int(ffmpeg.probe(
                 input_file)['format']['duration'].split('.')[0])
