@@ -51,15 +51,19 @@ async def transcode(message: Message):
             bitrate, size_name = calculate_bitrate(
                 int(target_size), globalValues['total'], audio_bitrate)
             if len(file_name) == 2:
+                print('1')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {size_name}.mkv"
                 metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {size_name}"
             elif len(file_name) == 3 and 'ESubs' in file_name:
+                print('2')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {size_name}.mkv"
                 metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {size_name}"
             elif len(file_name) == 3 and 'ESubs' not in file_name:
+                print('3')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {size_name}.mkv"
                 metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {size_name}"
             elif len(file_name) == 4:
+                print('4')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {file_name[3].strip()} - {size_name}.mkv"
                 metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {file_name[3].strip()} - x264 - AAC - {size_name}"
             if len(globalValues['file']) > 64:
