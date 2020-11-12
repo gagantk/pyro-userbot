@@ -50,6 +50,7 @@ async def transcode(message: Message):
                     Config.DOWN_PATH, f'audio.{audio_codec}'))['format']['bit_rate'])
             bitrate, size_name = calculate_bitrate(
                 int(target_size), globalValues['total'], audio_bitrate)
+            print(file_name)
             if len(file_name) == 2:
                 print('1')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {size_name}.mkv"
