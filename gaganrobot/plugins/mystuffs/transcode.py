@@ -307,7 +307,7 @@ async def trim(message: Message):
         globalValues['output'] = output_file
         globalValues['total'] = int(ffmpeg.probe(
             input_file)['format']['duration'].split('.')[0])
-        globalValues['type'] = 'sample'
+        globalValues['type'] = 'trim'
         options = {'-ss': start_time, '-t': end_time,
                    '-c': 'copy', '-async': '1'}
         setFF()
