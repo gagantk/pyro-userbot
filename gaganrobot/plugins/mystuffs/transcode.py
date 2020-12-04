@@ -58,7 +58,7 @@ async def transcode(message: Message):
             elif len(file_name) == 3 and 'ESubs' in file_name:
                 print('2')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {size_name}"
+                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {file_name[2].strip()} - {size_name}"
             elif len(file_name) == 3 and 'ESubs' not in file_name:
                 print('3')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {size_name}.mkv"
@@ -66,7 +66,7 @@ async def transcode(message: Message):
             elif len(file_name) == 4:
                 print('4')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {file_name[3].strip()} - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {file_name[3].strip()} - x264 - AAC - {size_name}"
+                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {file_name[3].strip()} - {size_name}"
             if len(globalValues['file']) > 64:
                 globalValues['file'] = globalValues['file'].replace(
                     '- x264 ', '')
@@ -288,6 +288,34 @@ async def sample(message: Message):
         await ff2.execute()
     else:
         await message.edit("Please read `.help sample`", del_in=5)
+
+
+@gaganrobot.on_cmd('trim', about={'header': 'Trim a video', 'description': 'Trim video using ffmpeg', 'usage': '{tr}trim video.mp4 | start_time | end_time', 'examples': ['{tr}trim input_file | 00:00:06 | 02:26:56']})
+async def trim(message: Message):
+    ''' Trim video '''
+    await message.edit('Processing...')
+    global globalValues
+    globalValues['msg'] = message
+    if message.input_str:
+        inputs = [word.strip() for word in message.input_str.split('|')]
+        input_file = os.path.join(Config.DOWN_PATH, inputs[0])
+        start_time = inputs[1]
+        end_time = inputs[2]
+        output_file = os.path.join(
+            Config.DOWN_PATH, inputs[0][:-4] + '-trimmed' + inputs[0][-4:])
+        globalValues['file'] = inputs[0][:-4] + '-trimmed' + inputs[0][-4:]
+        globalValues['output'] = output_file
+        globalValues['total'] = int(ffmpeg.probe(
+            input_file)['format']['duration'].split('.')[0])
+        globalValues['type'] = 'sample'
+        options = {'-ss': start_time, '-t': end_time,
+                   '-c': 'copy', '-async': '1'}
+        setFF()
+        ff2 = globalValues['ff'].input(input_file).option(
+            'y').output(output_file, options)
+        await ff2.execute()
+    else:
+        await message.edit("Please read `.help trim`", del_in=5)
 
 
 def setFF():
