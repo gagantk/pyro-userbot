@@ -54,19 +54,19 @@ async def transcode(message: Message):
             if len(file_name) == 2:
                 print('1')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {size_name}"
             elif len(file_name) == 3 and 'ESubs' in file_name:
                 print('2')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {file_name[2].strip()} - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - {file_name[2].strip()} - {size_name}"
             elif len(file_name) == 3 and 'ESubs' not in file_name:
                 print('3')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {size_name}"
             elif len(file_name) == 4:
                 print('4')
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - {file_name[3].strip()} - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {file_name[3].strip()} - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - {file_name[3].strip()} - {size_name}"
             if len(globalValues['file']) > 64:
                 globalValues['file'] = globalValues['file'].replace(
                     '- x264 ', '')
@@ -77,14 +77,14 @@ async def transcode(message: Message):
             globalValues['output'] = output_file
             if '-subs' in message.input_str:
                 optionsDict = {'-c': 'copy', '-c:s': 'copy', '-metadata': f'title={metadata_file_name}',
-                               '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
-                               '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
-                               '-metadata:s:s:0': ['language=eng', 'title=https://t.me/Kannada_Movies_HDs'],
+                               '-metadata:s:v:0': ['language=kan', 'title=https://t.me/KannadaCinemaMandira'],
+                               '-metadata:s:a:0': ['language=kan', 'title=https://t.me/KannadaCinemaMandira'],
+                               '-metadata:s:s:0': ['language=eng', 'title=https://t.me/KannadaCinemaMandira'],
                                '-disposition:s:0': 'default'}
             else:
                 optionsDict = {'-c': 'copy', '-metadata': f'title={metadata_file_name}',
-                               '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
-                               '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs']}
+                               '-metadata:s:v:0': ['language=kan', 'title=https://t.me/KannadaCinemaMandira'],
+                               '-metadata:s:a:0': ['language=kan', 'title=https://t.me/KannadaCinemaMandira']}
             setFF()
             ff2 = globalValues['ff'].input(input_file).option(
                 'y').output(output_file, optionsDict)
@@ -111,19 +111,19 @@ async def transcode(message: Message):
                 int(target_size), globalValues['total'], audio_bitrate)
             if len(file_name) == 2:
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - ESubs - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - ESubs - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - x264 - AAC - ESubs - {size_name}"
             elif len(file_name) == 3:
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - ESubs - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - ESubs - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - x264 - AAC - ESubs - {size_name}"
             if len(globalValues['file']) > 64:
                 globalValues['file'] = globalValues['file'].replace(
                     'ESubs - ', '')
             output_file = os.path.join(Config.DOWN_PATH, globalValues['file'])
             globalValues['output'] = output_file
             optionsDict = {'-c:v': 'copy', '-c:a': 'copy', '-c:s': 'copy', '-metadata': f'title={metadata_file_name}',
-                           '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
-                           '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
-                           '-metadata:s:s:0': ['language=eng', 'title=https://t.me/Kannada_Movies_HDs'],
+                           '-metadata:s:v:0': ['language=kan', 'title=https://t.me/KannadaCinemaMandira'],
+                           '-metadata:s:a:0': ['language=kan', 'title=https://t.me/KannadaCinemaMandira'],
+                           '-metadata:s:s:0': ['language=eng', 'title=https://t.me/KannadaCinemaMandira'],
                            '-disposition:s:0': 'default'}
             setFF()
             ff2 = globalValues['ff'].input(input_file).input(srt_file).option(
@@ -155,16 +155,16 @@ async def transcode(message: Message):
                 int(target_size), globalValues['total'], audio_bitrate)
             if len(file_name) == 2:
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {video_codec.replace('h', 'x')} - {audio_codec.upper()} - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - {video_codec.replace('h', 'x')} - {audio_codec.upper()} - {size_name}"
             elif len(file_name) == 3 and file_name[2].strip() == 'ESubs':
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {video_codec.replace('h', 'x')} - {audio_codec.upper()} - {file_name[2].strip()} - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - {video_codec.replace('h', 'x')} - {audio_codec.upper()} - {file_name[2].strip()} - {size_name}"
             elif len(file_name) == 3 and (file_name[2].strip() == '720p' or file_name[2].strip() == '1080p'):
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {video_codec.replace('h', 'x')} - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {video_codec.replace('h', 'x')} - {audio_codec.upper()} - {file_name[2].strip()} - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - {video_codec.replace('h', 'x')} - {audio_codec.upper()} - {file_name[2].strip()} - {size_name}"
             elif len(file_name) == 4 and (file_name[2].strip() == '720p' or file_name[2].strip() == '1080p'):
                 globalValues['file'] = f"{file_name[0].strip()} - {file_name[1].strip()} - {file_name[2].strip()} - {video_codec.replace('h', 'x')} - {file_name[3].strip()} - {size_name}.mkv"
-                metadata_file_name = f"https://t.me/Kannada_Movies_HDs - {file_name[0].strip()} - {file_name[1].strip()} - {video_codec.replace('h', 'x')} - {audio_codec.upper()} - {file_name[2].strip()} - {file_name[3].strip()} - {size_name}"
+                metadata_file_name = f"https://t.me/KannadaCinemaMandira - {file_name[0].strip()} - {file_name[1].strip()} - {video_codec.replace('h', 'x')} - {audio_codec.upper()} - {file_name[2].strip()} - {file_name[3].strip()} - {size_name}"
             if len(globalValues['file']) > 64:
                 globalValues['file'] = globalValues['file'].replace(
                     'x264 - ', '')
@@ -174,20 +174,20 @@ async def transcode(message: Message):
             output_file = os.path.join(Config.DOWN_PATH, globalValues['file'])
             globalValues['output'] = output_file
             optionsDict = {'-b:v': bitrate + 'k', '-c:a': 'copy', '-metadata': f'title={metadata_file_name}',
-                           '-metadata:s:v:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs'],
-                           '-metadata:s:a:0': ['language=kan', 'title=https://t.me/Kannada_Movies_HDs']}
+                           '-metadata:s:v:0': ['language=kan', 'title=https://t.me/KannadaCinemaMandira'],
+                           '-metadata:s:a:0': ['language=kan', 'title=https://t.me/KannadaCinemaMandira']}
             if len(inputs) == 4 and '-s' not in inputs[3]:
                 optionsDict['-vf'] = f'scale={inputs[3]}'
             elif len(inputs) == 4 and '-s' in inputs[3]:
                 optionsDict['-c:s'] = 'copy'
                 optionsDict['-metadata:s:s:0'] = ['language=eng',
-                                                  'title=https://t.me/Kannada_Movies_HDs']
+                                                  'title=https://t.me/KannadaCinemaMandira']
                 optionsDict['-disposition:s:0'] = 'default'
             elif len(inputs) == 5 and '-s' in inputs[4]:
                 optionsDict['-vf'] = f'scale={inputs[3]}'
                 optionsDict['-c:s'] = 'copy'
                 optionsDict['-metadata:s:s:0'] = ['language=eng',
-                                                  'title=https://t.me/Kannada_Movies_HDs']
+                                                  'title=https://t.me/KannadaCinemaMandira']
                 optionsDict['-disposition:s:0'] = 'default'
             setFF()
             if srt_file:
@@ -401,7 +401,7 @@ async def on_progress(progress):
 async def on_completed():
     # print('Completed')
     msg = globalValues['msg']
-    caption = f"<b>{globalValues['file'].replace('.mkv', '')}</b>\n\n@Kannada_Movies_HDs\nhttps://t.me/Kannada_Movies_HDs"
+    caption = f"<b>{globalValues['file'].replace('.mkv', '')}</b>\n\n@KannadaCinemaMandira\nhttps://t.me/KannadaCinemaMandira"
     if globalValues['type'] in ['transcode', 'sample']:
         await upload(msg, Path(globalValues['output']), upload_as_doc=True, caption=caption)
     del globalValues['ff']
