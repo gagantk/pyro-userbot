@@ -29,9 +29,7 @@ async def whatsapp(message: Message):
             await message.edit("`Process Canceled!`", del_in=5)
         else:
             await message.delete()
-            print(dl_loc)
             dl_loc = os.path.join(Config.DOWN_PATH, os.path.basename(dl_loc))
-            print(dl_loc)
             data = ffmpeg.probe(dl_loc)
             height = data['streams'][0]['height']
             width = data['streams'][0]['width']
@@ -39,10 +37,10 @@ async def whatsapp(message: Message):
             new_width = 0
             if height > width:
                 new_width = 600
-                new_height = round(height / width * 600)
+                new_height = -2
             else:
                 new_height = 600
-                new_width = round(width / height * 600)
+                new_width = -2
             tmp_name = os.path.basename(dl_loc).split('.')
             outputfile = os.path.join(
                 Config.DOWN_PATH, tmp_name[0] + '-new.' + tmp_name[1])
