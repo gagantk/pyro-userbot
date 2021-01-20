@@ -229,7 +229,7 @@ async def doc_upload(message: Message, path, del_path: bool = False, extra: str 
 
 async def vid_upload(message: Message, path, del_path: bool = False, extra: str = ''):
     strpath = str(path)
-    thumb = await get_thumb(strpath)
+    thumb = await get_thumb_video(strpath)
     duration = 0
     metadata = extractMetadata(createParser(strpath))
     if metadata and metadata.has("duration"):
