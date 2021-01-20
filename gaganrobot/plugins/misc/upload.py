@@ -379,6 +379,31 @@ async def get_thumb(path: str = ''):
     return None
 
 
+async def get_thumb_video(path: str = ''):
+    if path:
+        types = (".jpg", ".webp", ".png")
+        if path.endswith(types):
+            return None
+        file_name = os.path.splitext(path)[0]
+        for type_ in types:
+            thumb_path = file_name + type_
+            if os.path.exists(thumb_path):
+                if type_ != ".jpg":
+                    new_thumb_path = f"{file_name}.jpg"
+                    Image.open(thumb_path).convert(
+                        'RGB').save(new_thumb_path, "JPEG")
+                    os.remove(thumb_path)
+                    thumb_path = new_thumb_path
+                return thumb_path
+        metadata = extractMetadata(createParser(path))
+        if metadata and metadata.has("duration"):
+            return await take_screen_shot(
+                path, metadata.get("duration").seconds)
+    if os.path.exists(LOGO_PATH):
+        return LOGO_PATH
+    return None
+
+
 async def remove_thumb(thumb: str) -> None:
     if (thumb and os.path.exists(thumb)
             and thumb != LOGO_PATH and thumb != Config.THUMB_PATH):

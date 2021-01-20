@@ -64,7 +64,8 @@ def setFF():
 async def on_start(arguments):
     # print('Arguments:', arguments)
     msg = globalValues['msg']
-    await msg.reply_text('Arguments: ' + str(arguments))
+    print('Arguments: ' + str(arguments))
+    # await msg.reply_text('Arguments: ' + str(arguments))
     pass
 
 
