@@ -43,7 +43,7 @@ async def zee(message: Message):
 
 
 def get_url(movie_id):
-    zee_api = f'https://gwapi.zee5.com/content/details/0-0-{movie_id}?translation=en&country=IN'
+    zee_api = f'https://gwapi.zee5.com/content/details/0-0-{movie_id}?translation=en&country=IN&version=2'
     res = requests.get(zee_api)
     data = res.json()
     hls_url = data['video_details']['hls_url'].replace('drm', 'hls')
