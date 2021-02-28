@@ -20,7 +20,7 @@ motor
 natsort
 numpy
 oauth2client
-opencv-python
+opencv-python-headless
 Pillow==7.1.0
 psutil
 pybase64

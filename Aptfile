@@ -3,3 +3,7 @@ wget
 wget2
 pv
 p7zip-full
+libsm6
+libxrender1
+libfontconfig1
+libice6
