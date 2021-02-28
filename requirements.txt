@@ -18,7 +18,9 @@ instaloader
 jq
 motor
 natsort
+numpy
 oauth2client
+opencv-python
 Pillow==7.1.0
 psutil
 pybase64

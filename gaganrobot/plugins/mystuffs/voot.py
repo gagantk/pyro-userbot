@@ -2,20 +2,31 @@ import requests
 import asyncio
 import glob
 import os
+import wget
+import numpy as np
+import cv2
 from time import time
 from math import floor
+from datetime import datetime
+from pathlib import Path
 
 from gaganrobot import gaganrobot, Message, Config
 from gaganrobot.utils import humanbytes, time_formatter
 from gaganrobot.plugins.misc.utube import _tubeDl
+from ..misc.upload import upload
 from youtube_dl import YoutubeDL
 
 urls = []
 ydl = YoutubeDL()
+thumb_url = ''
+title = ''
+startdate = datetime(2021, 2, 28, 0, 0, 0, 0)
+airtime = None
 
 
 @gaganrobot.on_cmd('voot', about={'header': 'Download Voot contents'})
 async def voot(message: Message):
+    global thumb_url
     await message.edit('Processing...')
     if message.input_str:
         inputs = message.input_str.split()
@@ -24,18 +35,30 @@ async def voot(message: Message):
         if len(inputs) == 1:
             await message.reply_text(f'`{download_url}`')
             text = '\n'.join(formats)
+            generate_thumbs(thumb_url)
             await message.try_to_edit(f"`{text}`")
         elif len(inputs) == 2:
             await download_video(inputs[1], message)
 
 
 def get_url(mediaId):
+    global thumb_url
+    global title
+    global airtime
     url = 'http://tvpapi.as.tvinci.com/v3_4/gateways/jsonpostgw.aspx?m=GetMediaInfo'
     jsonObj = {'initObj': {'Locale': {'LocaleLanguage': '', 'LocaleCountry': '', 'LocaleDevice': '', 'LocaleUserState': '0'}, 'Platform': '0',
                            'SiteGuid': '0', 'DomainID': 0, 'UDID': '', 'ApiUser': 'tvpapi_225', 'ApiPass': '11111'}, 'MediaID': '', 'mediaType': 0}
     jsonObj['MediaID'] = mediaId
     res = requests.post(url, json=jsonObj)
     data = res.json()
+    for item in data['Metas']:
+        if item['Key'] == 'EpisodeMainTitle':
+            title = item['Value']
+        if item['Key'] == 'Airtime':
+            airtime = datetime.strptime(item['Value'], '%d/%m/%Y %H:%M:%S')
+    for item in data['Pictures']:
+        if item['PicSize'] == '1280X720':
+            thumb_url = item['URL']
     for item in data['Files']:
         if item['Format'] == 'TV Main':
             return item['URL']
@@ -78,16 +101,56 @@ async def download_video(format_id: str, message: Message):
                     asyncio.get_event_loop().run_until_complete(message.edit(progress_str))
     url = ''
     startTime = time()
+    quality = ''
     for item in urls:
         if item['format_id'] == format_id:
             url = item['url']
+            quality = item['format'].split('x')[-1]
     retcode = await _tubeDl([url], __progress, startTime, None)
     if retcode == 0:
         _fpath = glob.glob(os.path.join(
             Config.DOWN_PATH, str(startTime), '*'))[0]
         await message.edit(f"**YTDL completed in {round(time() - startTime)} seconds**\n`{_fpath}`")
+        thumb = get_biggboss_thumb(quality)
+        caption = generate_caption(quality)
+        await upload(message, Path(_fpath), thumb=thumb, caption=caption)
     else:
         await message.edit(str(retcode))
+
+
+def generate_thumbs(url):
+    wget.download(url, 'downloads/biggboss.jpg')
+    for item in ['360.png', '480.png', '720.png', '1080.png']:
+        background = cv2.imread(os.path.join(
+            os.getcwd(), 'downloads', 'biggboss.jpg'), -1)
+        overlay = cv2.imread(os.path.join(os.getcwd(), 'downloads', item), -1)
+        h, w, depth = overlay.shape
+        result = np.zeros((h, w, 3), np.uint8)
+        for i in range(h):
+            for j in range(w):
+                color1 = background[i, j]
+                color2 = overlay[i, j]
+                alpha = color2[3] / 255.0
+                new_color = [(1 - alpha) * color1[0] + alpha * color2[0],
+                             (1 - alpha) * color1[1] + alpha * color2[1],
+                             (1 - alpha) * color1[2] + alpha * color2[2]]
+                result[i, j] = new_color
+        cv2.imwrite(os.path.join(os.getcwd(), 'downloads',
+                                 item.split('.')[0] + '-final.jpg'), result)
+
+
+def get_biggboss_thumb(quality):
+    return os.path.join(os.getcwd(), 'downloads', quality + '-final.jpg')
+
+
+def generate_caption(quality):
+    global airtime
+    global startdate
+    caption = f'<i>{title}</i>'
+    epnum = (airtime - startdate).days
+    caption += f'\nBigg Boss Kannada Season 08 - Episode {epnum}'
+    caption += f'\n@Bigg_Boss_Kannada'
+    return caption
 
 
 def my_hook(d):

@@ -1,6 +1,7 @@
 !downloads/
 downloads/*
 !downloads/thumb_image.jpg
+!downloads/*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

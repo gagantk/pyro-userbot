@@ -183,9 +183,9 @@ async def upload_path(message: Message, path: Path, del_path):
             break
 
 
-async def upload(message: Message, path: Path, del_path: bool = False, extra: str = '', upload_as_doc: bool = False, caption: str = ''):
+async def upload(message: Message, path: Path, del_path: bool = False, extra: str = '', upload_as_doc: bool = False, caption: str = '', thumb: str = ''):
     if path.name.endswith((".mkv", ".mp4", ".webm")) and ('d' not in message.flags) and (not upload_as_doc):
-        await vid_upload(message, path, del_path, extra)
+        await vid_upload(message, path, del_path, extra, thumb, caption)
     elif path.name.endswith((".mp3", ".flac", ".wav", ".m4a")) and ('d' not in message.flags) and (not upload_as_doc):
         await audio_upload(message, path, del_path, extra)
     elif path.name.endswith((".jpg", ".jpeg", ".png", ".bmp")) and ('d' not in message.flags) and (not upload_as_doc):
@@ -227,9 +227,14 @@ async def doc_upload(message: Message, path, del_path: bool = False, extra: str 
             os.remove(strpath)
 
 
-async def vid_upload(message: Message, path, del_path: bool = False, extra: str = ''):
+async def vid_upload(message: Message, path, del_path: bool = False, extra: str = '', voot_thumb: str = '', caption: str = ''):
     strpath = str(path)
-    thumb = await get_thumb_video(strpath)
+    if voot_thumb:
+        thumb = voot_thumb
+    else:
+        thumb = await get_thumb_video(strpath)
+    if not caption:
+        caption = path.name
     duration = 0
     metadata = extractMetadata(createParser(strpath))
     if metadata and metadata.has("duration"):
@@ -244,7 +249,7 @@ async def vid_upload(message: Message, path, del_path: bool = False, extra: str 
             video=strpath,
             duration=duration,
             thumb=thumb,
-            caption=path.name,
+            caption=caption,
             parse_mode="html",
             disable_notification=True,
             progress=progress,
