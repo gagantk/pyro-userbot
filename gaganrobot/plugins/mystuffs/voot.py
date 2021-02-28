@@ -47,7 +47,7 @@ def get_formats(url):
     for item in formats['formats']:
         urls.append(
             {'format_id': item['format_id'], 'format': item['format'], 'url': item['url']})
-    return urls
+    return [url['format'] for url in urls]
 
 
 async def download_video(format_id: str, message: Message):
