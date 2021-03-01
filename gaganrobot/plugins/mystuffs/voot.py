@@ -30,8 +30,8 @@ async def voot(message: Message):
     await message.edit('Processing...')
     if message.input_str:
         inputs = message.input_str.split()
-        download_url = get_url(inputs[0])
-        formats = get_formats(download_url)
+        download_urls = get_urls(inputs[0])
+        formats = get_formats(download_urls)
         if len(inputs) == 1:
             await message.reply_text(f'`{download_url}`')
             text = '\n'.join(formats)
@@ -41,7 +41,7 @@ async def voot(message: Message):
             await download_video(inputs[1], message)
 
 
-def get_url(mediaId):
+def get_urls(mediaId):
     global thumb_url
     global title
     global airtime
@@ -51,6 +51,7 @@ def get_url(mediaId):
     jsonObj['MediaID'] = mediaId
     res = requests.post(url, json=jsonObj)
     data = res.json()
+    medias = []
     for item in data['Metas']:
         if item['Key'] == 'EpisodeMainTitle':
             title = item['Value']
@@ -60,16 +61,19 @@ def get_url(mediaId):
         if item['PicSize'] == '1280X720':
             thumb_url = item['URL']
     for item in data['Files']:
-        if item['Format'] == 'TV Main':
-            return item['URL']
+        if item['Format'] == 'HLSFPS_TV_PremiumHD' or item['Format'] == '360_Main':
+            medias.append(item['URL'])
+    return medias
 
 
-def get_formats(url):
+def get_formats(media_urls):
     global urls
-    formats = ydl.extract_info(url, download=False)
-    for item in formats['formats']:
-        urls.append(
-            {'format_id': item['format_id'], 'format': item['format'], 'url': item['url']})
+    for url in media_urls:
+        formats = ydl.extract_info(url, download=False)
+        for item in formats['formats']:
+            if item['format'].split('x')[1] in ['360', '480', '720', '1080']:
+                urls.append(
+                    {'format_id': item['format_id'], 'format': item['format'], 'url': item['url']})
     return [url['format'] for url in urls]
 
 
