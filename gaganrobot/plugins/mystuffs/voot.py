@@ -185,7 +185,7 @@ def generate_caption(quality):
     global day_num
     global epnum
     caption = f'<i>{title}</i>'
-    caption += f'\n<b>Bigg Boss Kannada Season 08 - Episode {epnum} ({airtime.strftime(' % d-%m % Y')}) [Day {day_num}]</b>'
+    caption += f"\n<b>Bigg Boss Kannada Season 08 - Episode {epnum} ({airtime.strftime('%d-%m-%Y')}) [Day {day_num}]</b>"
     caption += f'\n\n#{quality}p'
     caption += f'\nS8E{epnum}'
     caption += f'\n@Bigg_Boss_Kannada'
