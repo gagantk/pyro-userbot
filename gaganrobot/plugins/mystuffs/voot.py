@@ -6,6 +6,7 @@ import wget
 import numpy as np
 import cv2
 import socket
+import json
 from time import time
 from math import floor
 from datetime import datetime
@@ -30,22 +31,23 @@ headers = {'content-version': 'V4',
 
 @gaganrobot.on_cmd('voot', about={'header': 'Download Voot contents'})
 async def voot(message: Message):
-    global thumb_url
+    # global thumb_url
     await message.edit('Processing...')
     if message.input_str:
-        inputs = message.input_str.split()
-        ep_type, entryId = check_type(inputs[0])
-        formats = get_formats_v2(entryId, ep_type)
+        inputs = message.input_str.split('|')
+        data = json.loads(inputs[0])
+        # ep_type, entryId = check_type(inputs[0])
+        # formats = get_formats_v2(data['entryId'], data['mediaSubType'])
         # download_urls = get_urls(inputs[0])
         # formats = get_formats(download_urls)
-        formats = get_formats_v2(entryId, ep_type)
+        formats = get_formats_v2(data['entryId'], data['mediaSubType'])
         if len(inputs) == 1:
             # await message.reply_text(f'`{download_urls}`')
             text = '\n'.join(formats)
-            generate_thumbs(thumb_url)
+            generate_thumbs(data['thumb_url'])
             await message.try_to_edit(f"`{text}`")
         elif len(inputs) == 2:
-            await download_video(inputs[1], message)
+            await download_video(inputs[1], message, data)
 
 
 def get_urls(mediaId):
@@ -110,7 +112,7 @@ def get_formats_v2(entryId, ep_type):
     return [url['format'] for url in urls]
 
 
-async def download_video(format_id: str, message: Message):
+async def download_video(format_id: str, message: Message, results: dict):
     def __progress(data: dict):
         if ((time() - startTime) % 4) > 3.9:
             if data['status'] == 'downloading':
@@ -149,7 +151,7 @@ async def download_video(format_id: str, message: Message):
             Config.DOWN_PATH, str(startTime), '*'))[0]
         await message.edit(f"**YTDL completed in {round(time() - startTime)} seconds**\n`{_fpath}`")
         thumb = get_biggboss_thumb(quality)
-        caption = generate_caption(quality)
+        caption = generate_caption(quality, results)
         await upload(message, Path(_fpath), thumb=thumb, caption=caption)
     else:
         await message.edit(str(retcode))
@@ -180,14 +182,16 @@ def get_biggboss_thumb(quality):
     return os.path.join(os.getcwd(), 'downloads', quality + '-final.jpg')
 
 
-def generate_caption(quality):
-    global airtime
-    global day_num
-    global epnum
-    caption = f'<i>{title}</i>'
-    caption += f"\n<b>Bigg Boss Kannada Season 08 - Episode {epnum} ({airtime.strftime('%d-%m-%Y')}) [Day {day_num}]</b>"
-    caption += f'\n\n#{quality}p'
-    caption += f'\nS8E{epnum}'
+def generate_caption(quality, data):
+    caption = f"<i>{data['title']}</i>"
+    if data['mediaSubType'] == 'FULL EPISODE':
+        caption += f"\n<b>Bigg Boss Kannada Season 08 - Episode {data['epnum']} ({datetime.strptime(data['airtime'], '%y%m%d').strftime('%d-%m-%Y')}) [Day {data['day_num']}]</b>"
+        caption += f'\n\n#{quality}p'
+        caption += f"\n#S8E{data['epnum']}"
+    else:
+        caption += f"\n<b>Bigg Boss Kannada Season 08 - ({datetime.strptime(data['airtime'], '%y%m%d').strftime('%d-%m-%Y')})"
+        caption += f'\n\n#{quality}p'
+        caption += f"\n#UnseenKathegalu"
     caption += f'\n@Bigg_Boss_Kannada'
     return caption
 
