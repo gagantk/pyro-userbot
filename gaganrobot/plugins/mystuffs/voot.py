@@ -23,6 +23,8 @@ thumb_url = ''
 title = ''
 startdate = datetime(2021, 2, 28, 0, 0, 0, 0)
 airtime = None
+headers = {'content-version': 'V4',
+           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36'}
 
 
 @gaganrobot.on_cmd('voot', about={'header': 'Download Voot contents'})
@@ -31,10 +33,13 @@ async def voot(message: Message):
     await message.edit('Processing...')
     if message.input_str:
         inputs = message.input_str.split()
-        download_urls = get_urls(inputs[0])
-        formats = get_formats(download_urls)
+        ep_type, entryId = check_type(inputs[0])
+        formats = get_formats_v2(entryId, ep_type)
+        # download_urls = get_urls(inputs[0])
+        # formats = get_formats(download_urls)
+        formats = get_formats_v2(entryId, ep_type)
         if len(inputs) == 1:
-            await message.reply_text(f'`{download_urls}`')
+            # await message.reply_text(f'`{download_urls}`')
             text = '\n'.join(formats)
             generate_thumbs(thumb_url)
             await message.try_to_edit(f"`{text}`")
@@ -74,6 +79,26 @@ def get_urls(mediaId):
 
 def get_formats(media_urls):
     global urls
+    for url in media_urls:
+        print(url)
+        formats = ydl.extract_info(url, download=False)
+        for item in formats['formats']:
+            if item['format'].split('x')[-1] in ['360', '480', '720', '1080']:
+                urls.append(
+                    {'format_id': item['format_id'], 'format': item['format'], 'url': item['url']})
+    return [url['format'] for url in urls]
+
+
+def get_formats_v2(entryId, ep_type):
+    hostname = socket.gethostname()
+    media_urls = [
+        f'https://cdnapisec.kaltura.com/p/1982551/sp/198255100/playManifest/protocol/https/entryId/{entryId}/format/applehttp/tags/360_main/f/a.m3u8']
+    if hostname in ['gagan-arch', 'LIN35006419', 'ip-172-31-39-70']:
+        media_urls.append(
+            f'https://cdnapisec.kaltura.com/p/1982551/sp/198255100/playManifest/protocol/https/deliveryProfileIds/15521,18791,20481,21271/entryId/{entryId}/format/applehttp/tags/tv_hd/f/a.m3u8')
+    else:
+        media_urls.append(
+            f'https://cdnapisec.kaltura.com/p/1982551/sp/198255100/playManifest/protocol/https/entryId/{entryId}/format/applehttp/tags/tv/f/a.m3u8')
     for url in media_urls:
         print(url)
         formats = ydl.extract_info(url, download=False)
@@ -167,3 +192,10 @@ def generate_caption(quality):
 def my_hook(d):
     if d['status'] == 'finished':
         print('Done downloading, now converting ...')
+
+
+def check_type(mediaId):
+    url = f'https://psapi.voot.com/media/voot/v1/voot-web/content/query/asset-details?&ids=include:{mediaId}&responseType=common'
+    res = requests.get(url, headers=headers)
+    data = res.json()
+    return (data['result'][0]['mediaSubType'], data['result'][0]['entryId'])
