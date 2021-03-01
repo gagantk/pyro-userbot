@@ -33,7 +33,7 @@ async def voot(message: Message):
         download_urls = get_urls(inputs[0])
         formats = get_formats(download_urls)
         if len(inputs) == 1:
-            await message.reply_text(f'`{download_url}`')
+            await message.reply_text(f'`{download_urls}`')
             text = '\n'.join(formats)
             generate_thumbs(thumb_url)
             await message.try_to_edit(f"`{text}`")
