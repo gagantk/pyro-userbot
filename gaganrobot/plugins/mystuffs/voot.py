@@ -69,6 +69,7 @@ def get_urls(mediaId):
 def get_formats(media_urls):
     global urls
     for url in media_urls:
+        print(url)
         formats = ydl.extract_info(url, download=False)
         for item in formats['formats']:
             if item['format'].split('x')[-1] in ['360', '480', '720', '1080']:
