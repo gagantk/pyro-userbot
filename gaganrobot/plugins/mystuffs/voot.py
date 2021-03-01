@@ -35,12 +35,15 @@ async def voot(message: Message):
     await message.edit('Processing...')
     if message.input_str:
         inputs = message.input_str.split('|')
+        print(inputs)
+        print(len(inputs))
         data = json.loads(inputs[0])
         # ep_type, entryId = check_type(inputs[0])
         # formats = get_formats_v2(data['entryId'], data['mediaSubType'])
         # download_urls = get_urls(inputs[0])
         # formats = get_formats(download_urls)
-        formats = get_formats_v2(data['entryId'], data['mediaSubType'])
+        formats_data = get_formats_v2(data['entryId'], data['mediaSubType'])
+        formats = [url['format'] for url in formats_data]
         if len(inputs) == 1:
             # await message.reply_text(f'`{download_urls}`')
             text = '\n'.join(formats)
@@ -102,17 +105,19 @@ def get_formats_v2(entryId, ep_type):
     else:
         media_urls.append(
             f'https://cdnapisec.kaltura.com/p/1982551/sp/198255100/playManifest/protocol/https/entryId/{entryId}/format/applehttp/tags/tv/f/a.m3u8')
+    result_urls = []
     for url in media_urls:
         print(url)
         formats = ydl.extract_info(url, download=False)
         for item in formats['formats']:
             if item['format'].split('x')[-1] in ['360', '480', '720', '1080']:
-                urls.append(
+                result_urls.append(
                     {'format_id': item['format_id'], 'format': item['format'], 'url': item['url']})
-    return [url['format'] for url in urls]
+    # return [url['format'] for url in urls]
+    return result_urls
 
 
-async def download_video(format_id: str, message: Message, results: dict):
+async def download_video(format_id: str, message: Message, results: dict, formats_data: list):
     def __progress(data: dict):
         if ((time() - startTime) % 4) > 3.9:
             if data['status'] == 'downloading':
@@ -141,7 +146,7 @@ async def download_video(format_id: str, message: Message, results: dict):
     url = ''
     startTime = time()
     quality = ''
-    for item in urls:
+    for item in formats_data:
         if item['format_id'] == format_id:
             url = item['url']
             quality = item['format'].split('x')[-1]
