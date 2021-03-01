@@ -5,6 +5,7 @@ import os
 import wget
 import numpy as np
 import cv2
+import socket
 from time import time
 from math import floor
 from datetime import datetime
@@ -60,9 +61,14 @@ def get_urls(mediaId):
     for item in data['Pictures']:
         if item['PicSize'] == '1280X720':
             thumb_url = item['URL']
+    hostname = socket.gethostname()
     for item in data['Files']:
-        if item['Format'] == 'HLSFPS_TV_PremiumHD' or item['Format'] == '360_Main':
-            medias.append(item['URL'])
+        if hostname in ['gagan-arch', 'LIN35006419', 'ip-172-31-39-70']:
+            if item['Format'] == 'HLSFPS_TV_PremiumHD' or item['Format'] == '360_Main':
+                medias.append(item['URL'])
+        else:
+            if item['Format'] == '360_Main' or item['Format'] == 'TV Main':
+                medias.append(item['URL'])
     return medias
 
 
