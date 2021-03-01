@@ -195,7 +195,13 @@ def my_hook(d):
 
 
 def check_type(mediaId):
+    global title
+    global thumb_url
+    global airtime
     url = f'https://psapi.voot.com/media/voot/v1/voot-web/content/query/asset-details?&ids=include:{mediaId}&responseType=common'
     res = requests.get(url, headers=headers)
-    data = res.json()
-    return (data['result'][0]['mediaSubType'], data['result'][0]['entryId'])
+    data = res.json()['result'][0]
+    title = data['fullTitle']
+    thumb_url = data['image16x9']
+    airtime = datetime.strptime(data['telecastDate'], '%Y%m%d')
+    return (data['mediaSubType'], data['entryId'])
