@@ -21,8 +21,9 @@ urls = []
 ydl = YoutubeDL()
 thumb_url = ''
 title = ''
-startdate = datetime(2021, 2, 28, 0, 0, 0, 0)
 airtime = None
+epnum = ''
+day_num = ''
 headers = {'content-version': 'V4',
            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36'}
 
@@ -181,10 +182,12 @@ def get_biggboss_thumb(quality):
 
 def generate_caption(quality):
     global airtime
-    global startdate
+    global day_num
+    global epnum
     caption = f'<i>{title}</i>'
-    epnum = (airtime - startdate).days
-    caption += f'\nBigg Boss Kannada Season 08 - Episode {epnum}'
+    caption += f'\n<b>Bigg Boss Kannada Season 08 - Episode {epnum} ({airtime.strftime(' % d-%m % Y')}) [Day {day_num}]</b>'
+    caption += f'\n\n#{quality}p'
+    caption += f'\nS8E{epnum}'
     caption += f'\n@Bigg_Boss_Kannada'
     return caption
 
@@ -198,10 +201,19 @@ def check_type(mediaId):
     global title
     global thumb_url
     global airtime
+    global epnum
+    global day_num
     url = f'https://psapi.voot.com/media/voot/v1/voot-web/content/query/asset-details?&ids=include:{mediaId}&responseType=common'
+    print(url)
     res = requests.get(url, headers=headers)
+    print(res)
+    print(res.json())
     data = res.json()['result'][0]
     title = data['fullTitle']
     thumb_url = data['image16x9']
     airtime = datetime.strptime(data['telecastDate'], '%Y%m%d')
+    epnum = data['episode']
+    if data['mediaSubType'] == 'FULL EPISODE':
+        temp = data['fullSynopsis'].split(':')[0]
+        day_num = temp.split()[1]
     return (data['mediaSubType'], data['entryId'])
