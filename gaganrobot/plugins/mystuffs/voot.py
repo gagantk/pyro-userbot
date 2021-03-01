@@ -71,7 +71,7 @@ def get_formats(media_urls):
     for url in media_urls:
         formats = ydl.extract_info(url, download=False)
         for item in formats['formats']:
-            if item['format'].split('x')[1] in ['360', '480', '720', '1080']:
+            if item['format'].split('x')[-1] in ['360', '480', '720', '1080']:
                 urls.append(
                     {'format_id': item['format_id'], 'format': item['format'], 'url': item['url']})
     return [url['format'] for url in urls]

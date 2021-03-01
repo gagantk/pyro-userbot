@@ -21,7 +21,7 @@ natsort
 numpy
 oauth2client
 opencv-python-headless
-Pillow==7.1.0
+Pillow
 psutil
 pybase64
 pyrogram>=1.0.7
