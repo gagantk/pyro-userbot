@@ -50,7 +50,7 @@ async def voot(message: Message):
             generate_thumbs(data['thumb_url'])
             await message.try_to_edit(f"`{text}`")
         elif len(inputs) == 2:
-            await download_video(inputs[1], message, data)
+            await download_video(inputs[1], message, data, formats_data)
 
 
 def get_urls(mediaId):
