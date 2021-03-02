@@ -190,7 +190,7 @@ def get_biggboss_thumb(quality):
 def generate_caption(quality, data):
     caption = f"<i>{data['title']}</i>"
     if data['mediaSubType'] == 'FULL EPISODE':
-        caption += f"\n<b>Bigg Boss Kannada Season 08 - Episode {data['epnum']} ({datetime.strptime(data['airtime'], '%y%m%d').strftime('%d-%m-%Y')}) [Day {data['day_num']}]</b>"
+        caption += f"\n<b>Bigg Boss Kannada Season 08 - Episode {data['epnum']} ({datetime.strptime(data['airtime'], '%Y%m%d').strftime('%d-%m-%Y')}) [Day {data['day_num']}]</b>"
         caption += f'\n\n#{quality}p'
         caption += f"\n#S8E{data['epnum']}"
     else:
