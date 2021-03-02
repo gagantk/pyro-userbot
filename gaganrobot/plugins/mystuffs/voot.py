@@ -42,12 +42,13 @@ async def voot(message: Message):
         inputs = message.input_str.split('|')
         print(inputs)
         print(len(inputs))
-        data = json.loads(inputs[0])
+        # data = json.loads(inputs[0])
         # ep_type, entryId = check_type(inputs[0])
         # formats = get_formats_v2(data['entryId'], data['mediaSubType'])
         # download_urls = get_urls(inputs[0])
         # formats = get_formats(download_urls)
-        formats_data = get_formats_v2(data['entryId'], data['mediaSubType'])
+        # formats_data = get_formats_v2(data['entryId'], data['mediaSubType'])
+        formats_data = get_formats_v3(message.input_str)
         formats = [url['format'] for url in formats_data]
         if len(inputs) == 1:
             # await message.reply_text(f'`{download_urls}`')
@@ -118,6 +119,17 @@ def get_formats_v2(entryId, ep_type):
             if item['format'].split('x')[-1] in ['360', '480', '720', '1080']:
                 result_urls.append(
                     {'format_id': item['format_id'], 'format': item['format'], 'url': item['url']})
+    # return [url['format'] for url in urls]
+    return result_urls
+
+
+def get_formats_v3(url):
+    print(url)
+    formats = ydl.extract_info(url, download=False)
+    for item in formats['formats']:
+        if item['format'].split('x')[-1] in ['360', '480', '720', '1080']:
+            result_urls.append(
+                {'format_id': item['format_id'], 'format': item['format'], 'url': item['url']})
     # return [url['format'] for url in urls]
     return result_urls
 
