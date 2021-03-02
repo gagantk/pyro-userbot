@@ -125,6 +125,7 @@ def get_formats_v2(entryId, ep_type):
 
 def get_formats_v3(url):
     print(url)
+    result_urls = []
     formats = ydl.extract_info(url, download=False)
     for item in formats['formats']:
         if item['format'].split('x')[-1] in ['360', '480', '720', '1080']:
