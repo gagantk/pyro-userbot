@@ -39,7 +39,7 @@ async def voot(message: Message):
     # global thumb_url
     await message.edit('Processing...')
     if message.input_str:
-        inputs = message.input_str.split('|')
+        inputs = message.input_str.split()
         print(inputs)
         print(len(inputs))
         # data = json.loads(inputs[0])
@@ -48,7 +48,7 @@ async def voot(message: Message):
         # download_urls = get_urls(inputs[0])
         # formats = get_formats(download_urls)
         # formats_data = get_formats_v2(data['entryId'], data['mediaSubType'])
-        formats_data = get_formats_v3(message.input_str)
+        formats_data = get_formats_v3(inputs[0])
         formats = [url['format'] for url in formats_data]
         if len(inputs) == 1:
             # await message.reply_text(f'`{download_urls}`')
