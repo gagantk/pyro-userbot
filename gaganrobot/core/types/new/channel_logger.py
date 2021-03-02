@@ -98,29 +98,18 @@ class ChannelLogger:
     async def fwd_msg(self,
                       message: Union['_message.Message', 'RawMessage'],
                       name: str = '',
-                      as_copy: bool = True,
-                      remove_caption: bool = False) -> None:
+                      as_copy: bool = True) -> None:
         """\nforward message to log channel.
-
         Parameters:
             message (`pyrogram.Message`):
                 pass pyrogram.Message object which want to forward.
-
             name (``str``, *optional*):
                 New Name for logger.
-
             as_copy (`bool`, *optional*):
                 Pass True to forward messages without the forward header
                 (i.e.: send a copy of the message content so
                 that it appears as originally sent by you).
                 Defaults to True.
-
-            remove_caption (`bool`, *optional*):
-                If set to True and *as_copy* is enabled as well,
-                media captions are not preserved when copying the
-                message. Has no effect if *as_copy* is not enabled.
-                Defaults to False.
-
         Returns:
             None
         """
@@ -130,11 +119,10 @@ class ChannelLogger:
             if message.media:
                 asyncio.get_event_loop().create_task(self.log("**Forwarding Message...**", name))
                 try:
-                    await message._client.forward_messages(chat_id=self._id,  # pylint: disable=protected-access
-                                                           from_chat_id=message.chat.id,
-                                                           message_ids=message.message_id,
-                                                           as_copy=as_copy,
-                                                           remove_caption=remove_caption)
+                    if as_copy:
+                        await message.copy(chat_id=self._id)
+                    else:
+                        await message.forward(chat_id=self._id)
                 except ValueError:
                     pass
             else:

@@ -12,7 +12,7 @@ from math import floor
 from datetime import datetime
 from pathlib import Path
 
-from gaganrobot import gaganrobot, Message, Config
+from gaganrobot import gaganrobot, Message, Config, filters
 from gaganrobot.utils import humanbytes, time_formatter
 from gaganrobot.plugins.misc.utube import _tubeDl
 from ..misc.upload import upload
@@ -27,6 +27,11 @@ epnum = ''
 day_num = ''
 headers = {'content-version': 'V4',
            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36'}
+
+
+@gaganrobot.on_message(filters.user('KannadaMoviesRobot'))
+async def test(message: Message):
+    await message.reply_text(message.input_str)
 
 
 @gaganrobot.on_cmd('voot', about={'header': 'Download Voot contents'})
