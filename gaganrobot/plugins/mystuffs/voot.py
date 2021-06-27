@@ -25,6 +25,7 @@ title = ''
 airtime = None
 epnum = ''
 day_num = ''
+result_urls_global = []
 headers = {'content-version': 'V4',
            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36'}
 
@@ -32,6 +33,14 @@ headers = {'content-version': 'V4',
 @gaganrobot.on_message(filters.user('KannadaMoviesRobot'))
 async def test(message: Message):
     await message.reply_text(message.input_str)
+
+
+@gaganrobot.on_cmd('vooturl', about={'header': 'Get URL'})
+async def vooturl(message: Message):
+    await message.edit('Processing...')
+    global result_urls_global
+    temp = [item['url'] for item in result_urls_global]
+    await message.try_to_edit(f"`{json.dumps(temp)}`")
 
 
 @gaganrobot.on_cmd('voot', about={'header': 'Download Voot contents'})
@@ -126,12 +135,14 @@ def get_formats_v2(entryId, ep_type):
 def get_formats_v3(url):
     print(url)
     result_urls = []
+    global result_urls_global
     formats = ydl.extract_info(url, download=False)
     for item in formats['formats']:
         if item['format'].split('x')[-1] in ['360', '480', '720', '1080']:
             result_urls.append(
                 {'format_id': item['format_id'], 'format': item['format'], 'url': item['url']})
     # return [url['format'] for url in urls]
+    result_urls_global = result_urls
     return result_urls
 
 
