@@ -59,9 +59,12 @@ async def voot(message: Message):
         # formats_data = get_formats_v2(data['entryId'], data['mediaSubType'])
         formats_data = get_formats_v3(data['url'])
         formats = [url['format'] for url in formats_data]
+        temp = [url['url'] for url in formats_data]
         if len(inputs) == 1:
             # await message.reply_text(f'`{download_urls}`')
             text = '\n'.join(formats)
+            text += '\n\n'
+            text += '\n'.join(temp)
             generate_thumbs(data['thumb_url'])
             await message.try_to_edit(f"`{text}`")
         elif len(inputs) == 2:
