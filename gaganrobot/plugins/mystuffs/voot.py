@@ -229,7 +229,7 @@ def generate_caption(quality, data):
         caption += f"\n<b>Bigg Boss Kannada Season 08 - ({datetime.strptime(data['airtime'], '%Y%m%d').strftime('%d-%m-%Y')})"
         caption += f'\n\n#{quality}p'
         caption += f"\n#UnseenKathegalu"
-    caption += f'\n@Bigg_Boss_Kannada'
+    caption += f'\n@BiggBossKannadaEpisodes'
     return caption
 
 
