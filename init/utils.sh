@@ -37,7 +37,9 @@ runPythonCode() {
 }
 
 runPythonModule() {
-    python${pVer%.*} -m "$@"
+    python${pVer%.*} -m "$@" &
+    setProc $!
+    waitProc
 }
 
 gitInit() {
@@ -51,6 +53,7 @@ gitClone() {
 remoteIsExist() {
     grep -q $1 < <(git remote)
 }
+
 addHeroku() {
     git remote add heroku $HEROKU_GIT_URL
 }
@@ -76,37 +79,32 @@ fetchBranches() {
     done
 }
 
+updateBuffer() {
+    git config http.postBuffer 524288000
+}
+
 upgradePip() {
     pip3 install -U pip &> /dev/null
 }
 
 installReq() {
-    pip3 install --no-cache-dir -r $1/requirements.txt &> /dev/null
-}
-
-replaceGaganRobot() {
-    for filename in gaganrobot/plugins/unofficial/*.py; do
-        sed -i "s/userge/gaganrobot/g" "${filename}"
-    done
-    for filename in gaganrobot/plugins/unofficial/plugins/*.py; do
-        sed -i "s/userge/gaganrobot/g" "${filename}"
-    done
+    pip3 install -r $1/requirements.txt &> /dev/null
 }
 
 printLine() {
-    echo ========================================================
+    echo '->- ->- ->- ->- ->- ->- ->- --- -<- -<- -<- -<- -<- -<- -<-'
 }
 
 printLogo() {
     printLine
     echo '
-    
-       ______                        ____        __          __ 
+
+       ______                        ____        __          __
       / ____/___ _____ _____ _____  / __ \____  / /_  ____  / /_
      / / __/ __ `/ __ `/ __ `/ __ \/ /_/ / __ \/ __ \/ __ \/ __/
-    / /_/ / /_/ / /_/ / /_/ / / / / _, _/ /_/ / /_/ / /_/ / /_  
-    \____/\__,_/\__, /\__,_/_/ /_/_/ |_|\____/_.___/\____/\__/  
-               /____/                                           
+    / /_/ / /_/ / /_/ / /_/ / / / / _, _/ /_/ / /_/ / /_/ / /_
+    \____/\__,_/\__, /\__,_/_/ /_/_/ |_|\____/_.___/\____/\__/
+               /____/
 
     '
     printLine

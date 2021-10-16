@@ -16,15 +16,14 @@ async def who_is(message: Message):
         try:
             from_user = await message.client.get_users(user_id)
             from_chat = await message.client.get_chat(user_id)
-        except Exception:
-            await message.err(
-                "no valid user_id or message specified, do .help whois for more info")
+        except Exception:  # pylint: disable=broad-except
+            await message.err("no valid user_id or message specified")
             return
     elif message.reply_to_message:
         from_user = await message.client.get_users(message.reply_to_message.from_user.id)
         from_chat = await message.client.get_chat(message.reply_to_message.from_user.id)
     else:
-        await message.err("no valid user_id or message specified, do .help whois for more info")
+        await message.err("no valid user_id or message specified")
         return
     if from_user or from_chat is not None:
         pp_c = await message.client.get_profile_photos_count(from_user.id)
@@ -45,7 +44,7 @@ async def who_is(message: Message):
             pass
         else:
             message_out_str += f"<b>👥 Common Chats:</b> <code>{cc_no}</code>\n"
-        message_out_str += f"<b>📝 Bio:</b> <code>{from_chat.description}</code>\n\n"
+        message_out_str += f"<b>📝 Bio:</b> <code>{from_chat.bio}</code>\n\n"
         message_out_str += f"<b>👁 Last Seen:</b> <code>{from_user.status}</code>\n"
         message_out_str += "<b>🔗 Permanent Link To Profile:</b> "
         message_out_str += f"<a href='tg://user?id={from_user.id}'>{from_user.first_name}</a>"

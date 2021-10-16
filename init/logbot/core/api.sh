@@ -1,7 +1,7 @@
 #!/bin/bash
 
 declare -r _api_url="https://api.telegram.org/bot"
-declare -i _mid=0
+declare -i _mid=0 _isChecked=0
 declare -a _allMessages=()
 
 _getResponse() {
@@ -14,6 +14,14 @@ _getResponse() {
         local ok=$(echo $rawUpdate | jq .ok)
         test -z $ok && return 1
         if test $ok = true; then
+            if test $_isChecked -eq 0; then
+                local chatType=$(echo $rawUpdate | jq .result.chat.type)
+                [[ $chatType == \"supergroup\" || $chatType == \"channel\" ]] || \
+                    quit "invalid log chat type ! [$chatType]"
+                local chatUsername=$(echo $rawUpdate | jq .result.chat.username)
+                test $chatUsername != null && quit "log chat should be private !"
+                _isChecked=1
+            fi
             if test $parse = true; then
                 local msg="msg$_mid"
                 Message $msg
@@ -28,6 +36,6 @@ _getResponse() {
 \terror_code : [$errcode]
 \tdescription : $desc"
         fi
-        sleep 0.6
+        sleep 0.7
     fi
 }

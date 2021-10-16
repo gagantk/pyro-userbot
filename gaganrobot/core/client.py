@@ -2,21 +2,27 @@
 
 __all__ = ['GaganRobot']
 
-import time
-import signal
 import asyncio
+import functools
 import importlib
+import inspect
+import os
+import signal
+import threading
+import time
 from types import ModuleType
 from typing import List, Awaitable, Any, Optional, Union
 
-from pyrogram import idle
+from pyrogram import idle, types
+from pyrogram.methods import Methods as RawMethods
 
 from gaganrobot import logging, Config, logbot
+from gaganrobot.plugins import get_all_plugins
 from gaganrobot.utils import time_formatter
 from gaganrobot.utils.exceptions import GaganRobotBotNotFound
-from gaganrobot.plugins import get_all_plugins
-from .methods import Methods
+from .database import get_collection
 from .ext import RawClient, pool
+from .methods import Methods
 
 _LOG = logging.getLogger(__name__)
 _LOG_STR = "<<<!  #####  %s  #####  !>>>"
@@ -24,13 +30,25 @@ _LOG_STR = "<<<!  #####  %s  #####  !>>>"
 _IMPORTED: List[ModuleType] = []
 _INIT_TASKS: List[asyncio.Task] = []
 _START_TIME = time.time()
+_SEND_SIGNAL = False
+
+_GAGANROBOT_STATUS = get_collection("GAGANROBOT_STATUS")
 
 
-def _shutdown() -> None:
-    _LOG.info(_LOG_STR, 'received stop signal, cancelling tasks ...')
-    for task in asyncio.all_tasks():
-        task.cancel()
-    _LOG.info(_LOG_STR, 'all tasks cancelled !')
+async def _set_running(is_running: bool) -> None:
+    await _GAGANROBOT_STATUS.update_one(
+        {'_id': 'GAGANROBOT_STATUS'},
+        {"$set": {'is_running': is_running}},
+        upsert=True
+    )
+
+
+async def _is_running() -> bool:
+    if Config.ASSERT_SINGLE_INSTANCE:
+        data = await _GAGANROBOT_STATUS.find_one({'_id': 'GAGANROBOT_STATUS'})
+        if data:
+            return bool(data['is_running'])
+    return False
 
 
 async def _complete_init_tasks() -> None:
@@ -41,14 +59,23 @@ async def _complete_init_tasks() -> None:
 
 
 class _AbstractGaganRobot(Methods, RawClient):
+    def __init__(self, **kwargs) -> None:
+        self._me: Optional[types.User] = None
+        super().__init__(**kwargs)
+
+    @property
+    def id(self) -> int:
+        """ returns client id """
+        if self.is_bot:
+            return RawClient.BOT_ID
+        return RawClient.USER_ID
+
     @property
     def is_bot(self) -> bool:
         """ returns client is bot or not """
         if self._bot is not None:
             return hasattr(self, 'ubot')
-        if Config.BOT_TOKEN:
-            return True
-        return False
+        return bool(Config.BOT_TOKEN)
 
     @property
     def uptime(self) -> str:
@@ -71,10 +98,8 @@ class _AbstractGaganRobot(Methods, RawClient):
         if hasattr(plg, '_init'):
             # pylint: disable=protected-access
             if asyncio.iscoroutinefunction(plg._init):
-                _INIT_TASKS.append(
-                    asyncio.get_event_loop().create_task(plg._init()))
-        _LOG.debug(
-            _LOG_STR, f"Imported {_IMPORTED[-1].__name__} Plugin Successfully")
+                _INIT_TASKS.append(self.loop.create_task(plg._init()))
+        _LOG.debug(_LOG_STR, f"Imported {_IMPORTED[-1].__name__} Plugin Successfully")
 
     async def _load_plugins(self) -> None:
         _IMPORTED.clear()
@@ -105,10 +130,28 @@ class _AbstractGaganRobot(Methods, RawClient):
         await self.finalize_load()
         return len(reloaded)
 
+    async def get_me(self, cached: bool = True) -> types.User:
+        if not cached or self._me is None:
+            self._me = await super().get_me()
+        return self._me
 
-class _GaganRobotBot(_AbstractGaganRobot):
+    async def start(self):
+        await super().start()
+        self._me = await self.get_me()
+        if self.is_bot:
+            RawClient.BOT_ID = self._me.id
+        else:
+            RawClient.USER_ID = self._me.id
+
+    def __eq__(self, o: object) -> bool:
+        return isinstance(o, _AbstractGaganRobot) and self.id == o.id
+
+    def __hash__(self) -> int:  # pylint: disable=W0235
+        return super().__hash__()
+
+
+class GaganRobotBot(_AbstractGaganRobot):
     """ GaganRobotBot, the bot """
-
     def __init__(self, **kwargs) -> None:
         _LOG.info(_LOG_STR, "Setting GaganRobotBot Configs")
         super().__init__(session_name=":memory:", **kwargs)
@@ -122,6 +165,8 @@ class _GaganRobotBot(_AbstractGaganRobot):
 class GaganRobot(_AbstractGaganRobot):
     """ GaganRobot, the userbot """
 
+    has_bot = bool(Config.BOT_TOKEN)
+
     def __init__(self, **kwargs) -> None:
         _LOG.info(_LOG_STR, "Setting GaganRobot Configs")
         kwargs = {
@@ -133,12 +178,16 @@ class GaganRobot(_AbstractGaganRobot):
             kwargs['bot_token'] = Config.BOT_TOKEN
         if Config.HU_STRING_SESSION and Config.BOT_TOKEN:
             RawClient.DUAL_MODE = True
-            kwargs['bot'] = _GaganRobotBot(bot=self, **kwargs)
+            kwargs['bot'] = GaganRobotBot(bot=self, **kwargs)
         kwargs['session_name'] = Config.HU_STRING_SESSION or ":memory:"
         super().__init__(**kwargs)
 
     @property
-    def bot(self) -> '_GaganRobotBot':
+    def dual_mode(self) -> bool:
+        return RawClient.DUAL_MODE
+
+    @property
+    def bot(self) -> Union['GaganRobotBot', 'GaganRobot']:
         """ returns gaganrobotbot """
         if self._bot is None:
             if Config.BOT_TOKEN:
@@ -148,8 +197,22 @@ class GaganRobot(_AbstractGaganRobot):
 
     async def start(self) -> None:
         """ start client and bot """
-        pool._start()  # pylint: disable=protected-access
+        counter = 0
+        timeout = 30  # 30 sec
+        max_ = 1800  # 30 min
+
+        while await _is_running():
+            _LOG.info(_LOG_STR, "Waiting for the Termination of "
+                                f"previous GaganRobot instance ... [{timeout} sec]")
+            time.sleep(timeout)
+
+            counter += timeout
+            if counter >= max_:
+                _LOG.info(_LOG_STR, f"Max timeout reached ! [{max_} sec]")
+                break
+
         _LOG.info(_LOG_STR, "Starting GaganRobot")
+        await _set_running(True)
         await super().start()
         if self._bot is not None:
             _LOG.info(_LOG_STR, "Starting GaganRobotBot")
@@ -163,35 +226,112 @@ class GaganRobot(_AbstractGaganRobot):
             await self._bot.stop()
         _LOG.info(_LOG_STR, "Stopping GaganRobot")
         await super().stop()
-        await pool._stop()  # pylint: disable=protected-access
+        await _set_running(False)
+        pool._stop()  # pylint: disable=protected-access
 
     def begin(self, coro: Optional[Awaitable[Any]] = None) -> None:
         """ start gaganrobot """
-        loop = asyncio.get_event_loop()
-        loop.add_signal_handler(signal.SIGHUP, _shutdown)
-        loop.add_signal_handler(signal.SIGTERM, _shutdown)
-        run = loop.run_until_complete
+        lock = asyncio.Lock()
+        loop_is_stopped = asyncio.Event()
+        running_tasks: List[asyncio.Task] = []
+
+        async def _waiter() -> None:
+            try:
+                await asyncio.wait_for(loop_is_stopped.wait(), 30)
+            except asyncio.exceptions.TimeoutError:
+                pass
+
+        async def _finalize() -> None:
+            async with lock:
+                for t in running_tasks:
+                    t.cancel()
+                if self.is_initialized:
+                    await self.stop()
+                else:
+                    pool._stop()  # pylint: disable=protected-access
+            # pylint: disable=expression-not-assigned
+            [t.cancel() for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+            await self.loop.shutdown_asyncgens()
+            self.loop.stop()
+            _LOG.info(_LOG_STR, "Loop Stopped !")
+            loop_is_stopped.set()
+
+        async def _shutdown(_sig: signal.Signals) -> None:
+            global _SEND_SIGNAL  # pylint: disable=global-statement
+            _LOG.info(_LOG_STR, f"Received Stop Signal [{_sig.name}], Exiting GaganRobot ...")
+            await _finalize()
+            if _sig == _sig.SIGUSR1:
+                _SEND_SIGNAL = True
+
+        for sig in (signal.SIGHUP, signal.SIGTERM, signal.SIGINT, signal.SIGUSR1):
+            self.loop.add_signal_handler(
+                sig, lambda _sig=sig: self.loop.create_task(_shutdown(_sig)))
+
+        def _close_loop() -> None:
+            try:
+                self.loop.run_until_complete(_waiter())
+            except RuntimeError:
+                pass
+            self.loop.close()
+            _LOG.info(_LOG_STR, "Loop Closed !")
+
         try:
-            run(self.start())
-            loop = asyncio.get_event_loop()
-            running_tasks: List[asyncio.Task] = []
-            for task in self._tasks:
-                running_tasks.append(loop.create_task(task()))
+            self.loop.run_until_complete(self.start())
+        except RuntimeError:
+            _close_loop()
+            return
+
+        for task in self._tasks:
+            running_tasks.append(self.loop.create_task(task()))
+
+        logbot.edit_last_msg("GaganRobot has Started Successfully !")
+        logbot.end()
+        mode = "[DUAL]" if RawClient.DUAL_MODE else "[BOT]" if Config.BOT_TOKEN else "[USER]"
+
+        try:
             if coro:
-                _LOG.info(_LOG_STR, "Running Coroutine")
-                run(coro)
+                _LOG.info(_LOG_STR, f"Running Coroutine - {mode}")
+                self.loop.run_until_complete(coro)
             else:
-                _LOG.info(_LOG_STR, "Idling GaganRobot")
-                logbot.edit_last_msg("GaganRobot has Started Successfully !")
-                logbot.end()
+                _LOG.info(_LOG_STR, f"Idling GaganRobot - {mode}")
                 idle()
-            _LOG.info(_LOG_STR, "Exiting GaganRobot")
-            for task in running_tasks:
-                task.cancel()
-            run(self.stop())
-            run(loop.shutdown_asyncgens())
-        except asyncio.exceptions.CancelledError:
+            self.loop.run_until_complete(_finalize())
+        except (asyncio.exceptions.CancelledError, RuntimeError):
             pass
         finally:
-            if not loop.is_running():
-                loop.close()
+            _close_loop()
+            if _SEND_SIGNAL:
+                os.kill(os.getpid(), signal.SIGUSR1)
+
+
+def _un_wrapper(obj, name, function):
+    loop = asyncio.get_event_loop()
+
+    @functools.wraps(function)
+    def _wrapper(*args, **kwargs):
+        coroutine = function(*args, **kwargs)
+        if (threading.current_thread() is not threading.main_thread()
+                and inspect.iscoroutine(coroutine)):
+            async def _():
+                return await asyncio.wrap_future(asyncio.run_coroutine_threadsafe(coroutine, loop))
+            return _()
+        return coroutine
+
+    setattr(obj, name, _wrapper)
+
+
+def _un_wrap(source):
+    for name in dir(source):
+        if name.startswith("_"):
+            continue
+        wrapped = getattr(getattr(source, name), '__wrapped__', None)
+        if wrapped and (inspect.iscoroutinefunction(wrapped)
+                        or inspect.isasyncgenfunction(wrapped)):
+            _un_wrapper(source, name, wrapped)
+
+
+_un_wrap(RawMethods)
+for class_name in dir(types):
+    cls = getattr(types, class_name)
+    if inspect.isclass(cls):
+        _un_wrap(cls)

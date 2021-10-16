@@ -10,9 +10,10 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%d-%b-%y %H:%M:%S',
                     handlers=[
                         RotatingFileHandler(
-                            "logs/gaganrobot.log", maxBytes=(20480), backupCount=10),
+                            "logs/gaganrobot.log", maxBytes=20480, backupCount=10),
                         logging.StreamHandler()
                     ])
+
 logging.getLogger("pyrogram").setLevel(logging.WARNING)
 logging.getLogger("pyrogram.parser.html").setLevel(logging.ERROR)
 logging.getLogger("pyrogram.session.session").setLevel(logging.ERROR)

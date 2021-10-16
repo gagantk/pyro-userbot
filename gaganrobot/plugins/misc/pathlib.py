@@ -1,3 +1,6 @@
+""" work with paths or files """
+
+import asyncio
 import os
 from time import time
 from glob import glob
@@ -15,7 +18,7 @@ from typing import Union, List, Tuple, Sequence
 from rarfile import RarFile, is_rarfile
 
 from gaganrobot import gaganrobot, Message, Config, pool
-from gaganrobot.utils import humanbytes, time_formatter
+from gaganrobot.utils import humanbytes, time_formatter, sort_file_name_key
 from gaganrobot.utils.exceptions import ProcessCanceled
 
 _LOG = gaganrobot.getLogger(__name__)
@@ -53,9 +56,9 @@ class _BaseLib:
         percentage = self.percentage
         return "[{}{}]".format(
             ''.join((Config.FINISHED_PROGRESS_STR
-                     for i in range(floor(percentage / 5)))),
+                     for _ in range(floor(percentage / 5)))),
             ''.join((Config.UNFINISHED_PROGRESS_STR
-                     for i in range(20 - floor(percentage / 5)))))
+                     for _ in range(20 - floor(percentage / 5)))))
 
     @property
     def canceled(self) -> bool:
@@ -110,7 +113,7 @@ class PackLib(_BaseLib):
                         p_f.add(file_, relpath(file_, root))
                     self._current += 1
             except ProcessCanceled:
-                self._output = "`process canceled!`"
+                self._output = "`Process Canceled!`"
             except Exception as z_e:
                 _LOG.exception(z_e)
                 self._output = str(z_e)
@@ -124,11 +127,11 @@ class PackLib(_BaseLib):
             u_type = RarFile
         else:
             u_type = tar_open
-        with u_type(self._file_path, 'r') as p_f:
+        with u_type(self._file_path) as p_f:
             for file_name in file_names:
                 if self._is_canceled:
                     if not self._output:
-                        self._output = "`process canceled!`"
+                        self._output = "`Process Canceled!`"
                     if not self._is_finished:
                         self._is_finished = True
                     break
@@ -154,6 +157,7 @@ class PackLib(_BaseLib):
             elif path.is_dir():
                 for i in path.iterdir():
                     explorer(i)
+
         explorer(Path(self._file_path))
         file_name = basename(self._file_path)
         if tar:
@@ -163,26 +167,26 @@ class PackLib(_BaseLib):
             file_name += '.zip'
             p_type = ZipFile
         self._final_file_path = join(Config.DOWN_PATH, file_name)
-        pool.submit_thread(self._zip, p_type, file_paths,
-                           self._final_file_path)
+        pool.submit_thread(self._zip, p_type, file_paths, self._final_file_path)
 
     def unpack_path(self) -> None:
         """ UNPACK file path """
         chunked_file_names = []
         temp_file_names = []
         temp_size = 0
-        min_chunk_size = 1024 * 1024 * 10
+        min_chunk_size = 1048576 * 200
+        max_chunk_size = 1048576 * 1024
         for f_n, f_s in self.get_info():
             self._total += 1
             temp_size += f_s
             temp_file_names.append(f_n)
-            if temp_size >= min_chunk_size:
+            if temp_size >= max_chunk_size or (temp_size >= min_chunk_size
+                                               and len(temp_file_names) >= 10):
                 temp_size = 0
                 chunked_file_names.append(temp_file_names)
                 temp_file_names = []
         if temp_file_names:
             chunked_file_names.append(temp_file_names)
-        del temp_file_names, temp_size, min_chunk_size
         dir_name = splitext(basename(self._file_path))[0]
         self._final_file_path = join(
             Config.DOWN_PATH, dir_name.replace('.tar', '').replace('.', '_'))
@@ -192,10 +196,10 @@ class PackLib(_BaseLib):
     def get_info(self) -> Sequence[Tuple[str, int]]:
         """ Returns PACK info """
         if is_zipfile(self._file_path):
-            with ZipFile(self._file_path, 'r') as z_f:
+            with ZipFile(self._file_path) as z_f:
                 return tuple((z_.filename, z_.file_size) for z_ in z_f.infolist())
         elif is_rarfile(self._file_path):
-            with RarFile(self._file_path, 'r') as r_f:
+            with RarFile(self._file_path) as r_f:
                 return tuple((r_.filename, r_.file_size) for r_ in r_f.infolist())
         else:
             with tar_open(self._file_path, 'r') as t_f:
@@ -239,9 +243,9 @@ class SCLib(_BaseLib):
         percentage = self.percentage
         return "[{}{}]".format(
             ''.join((Config.FINISHED_PROGRESS_STR
-                     for i in range(floor(percentage / 5)))),
+                     for _ in range(floor(percentage / 5)))),
             ''.join((Config.UNFINISHED_PROGRESS_STR
-                     for i in range(20 - floor(percentage / 5)))))
+                     for _ in range(20 - floor(percentage / 5)))))
 
     @property
     def speed(self) -> float:
@@ -273,7 +277,7 @@ class SCLib(_BaseLib):
                             s_f.write(chunk)
                             self._cmp_size += len(chunk)
         except ProcessCanceled:
-            self._output = "`process canceled!`"
+            self._output = "`Process Canceled!`"
         except Exception as s_e:
             _LOG.exception(s_e)
             self._output = str(s_e)
@@ -297,7 +301,7 @@ class SCLib(_BaseLib):
                             self._cmp_size += len(chunk)
                     self._current += 1
         except ProcessCanceled:
-            self._output = "`process canceled!`"
+            self._output = "`Process Canceled!`"
         except Exception as c_e:
             _LOG.exception(c_e)
             self._output = str(c_e)
@@ -322,8 +326,7 @@ class SCLib(_BaseLib):
         """ Combine Split files """
         file_name, ext = splitext(basename(self._path))
         self._final_file_path = join(dirname(self._path), file_name)
-        file_list = sorted(glob(self._final_file_path +
-                                f".{'[0-9]' * len(ext.lstrip('.'))}"))
+        file_list = sorted(glob(self._final_file_path + f".{'[0-9]' * len(ext.lstrip('.'))}"))
         self._total = len(file_list)
         self._file_size = sum((os.stat(f_).st_size for f_ in file_list))
         pool.submit_thread(self._combine_worker, file_list)
@@ -343,7 +346,7 @@ async def ls_dir(message: Message) -> None:
     if path_.is_dir():
         folders = ''
         files = ''
-        for p_s in sorted(path_.iterdir()):
+        for p_s in sorted(path_.iterdir(), key=lambda a: sort_file_name_key(a.name)):
             if p_s.is_file():
                 if str(p_s).endswith((".mp3", ".flac", ".wav", ".m4a")):
                     files += '🎵'
@@ -381,7 +384,7 @@ async def dset_(message: Message) -> None:
         Config.DOWN_PATH = path.rstrip('/') + '/'
         await message.edit(f"set `{path}` as **working directory** successfully!", del_in=5)
     except Exception as p_e:
-        await message.err(p_e)
+        await message.err(str(p_e))
 
 
 @gaganrobot.on_cmd('dreset', about={
@@ -470,26 +473,35 @@ async def split_(message: Message) -> None:
         "**Speed** : `{}/s`\n" + \
         "**ETA** : `{}`\n" + \
         "**Completed Files** : `{}/{}`"
-    count = 0
-    while not s_obj.finished:
-        if message.process_is_canceled:
-            s_obj.cancel()
-        count += 1
-        if count >= Config.EDIT_SLEEP_TIMEOUT:
-            count = 0
-            await message.try_to_edit(tmp.format(s_obj.progress,
-                                                 s_obj.percentage,
-                                                 file_path,
-                                                 s_obj.final_file_path,
-                                                 humanbytes(s_obj.completed),
-                                                 humanbytes(s_obj.total),
-                                                 humanbytes(s_obj.speed),
-                                                 s_obj.eta,
-                                                 s_obj.completed_files,
-                                                 s_obj.total_files))
-        await sleep(1)
+
+    async def _worker():
+        while not s_obj.finished:
+            await message.edit(tmp.format(s_obj.progress,
+                                          s_obj.percentage,
+                                          file_path,
+                                          s_obj.final_file_path,
+                                          humanbytes(s_obj.completed),
+                                          humanbytes(s_obj.total),
+                                          humanbytes(s_obj.speed),
+                                          s_obj.eta,
+                                          s_obj.completed_files,
+                                          s_obj.total_files))
+            await sleep(Config.EDIT_SLEEP_TIMEOUT)
+
+    def _on_cancel():
+        s_obj.cancel()
+        task.cancel()
+
+    task = asyncio.create_task(_worker())
+    with message.cancel_callback(_on_cancel):
+        try:
+            await task
+        except asyncio.CancelledError:
+            await message.canceled()
+            return
+
     if s_obj.output:
-        await message.err(s_obj.output)
+        await message.err(s_obj.output, show_help=False)
     else:
         end_t = datetime.now()
         m_s = (end_t - start_t).seconds
@@ -529,26 +541,35 @@ async def combine_(message: Message) -> None:
         "**Speed** : `{}/s`\n" + \
         "**ETA** : `{}`\n" + \
         "**Completed Files** : `{}/{}`"
-    count = 0
-    while not c_obj.finished:
-        if message.process_is_canceled:
-            c_obj.cancel()
-        count += 1
-        if count >= Config.EDIT_SLEEP_TIMEOUT:
-            count = 0
-            await message.try_to_edit(tmp.format(c_obj.progress,
-                                                 c_obj.percentage,
-                                                 file_path,
-                                                 c_obj.final_file_path,
-                                                 humanbytes(c_obj.completed),
-                                                 humanbytes(c_obj.total),
-                                                 humanbytes(c_obj.speed),
-                                                 c_obj.eta,
-                                                 c_obj.completed_files,
-                                                 c_obj.total_files))
-        await sleep(1)
+
+    async def _worker():
+        while not c_obj.finished:
+            await message.edit(tmp.format(c_obj.progress,
+                                          c_obj.percentage,
+                                          file_path,
+                                          c_obj.final_file_path,
+                                          humanbytes(c_obj.completed),
+                                          humanbytes(c_obj.total),
+                                          humanbytes(c_obj.speed),
+                                          c_obj.eta,
+                                          c_obj.completed_files,
+                                          c_obj.total_files))
+            await sleep(Config.EDIT_SLEEP_TIMEOUT)
+
+    def _on_cancel():
+        c_obj.cancel()
+        task.cancel()
+
+    task = asyncio.create_task(_worker())
+    with message.cancel_callback(_on_cancel):
+        try:
+            await task
+        except asyncio.CancelledError:
+            await message.canceled()
+            return
+
     if c_obj.output:
-        await message.err(c_obj.output)
+        await message.err(c_obj.output, show_help=False)
     else:
         end_t = datetime.now()
         m_s = (end_t - start_t).seconds
@@ -569,7 +590,7 @@ async def zip_(message: Message) -> None:
     'header': "Tar file / folder",
     'usage': "{tr}tar [file path | folder path]"})
 async def tar_(message: Message) -> None:
-    """ tar fils """
+    """ tar files """
     await _pack_helper(message, True)
 
 
@@ -591,22 +612,31 @@ async def _pack_helper(message: Message, tar: bool = False) -> None:
         "**File Path** : `{}`\n" + \
         "**Dest** : `{}`\n" + \
         "**Completed** : `{}/{}`"
-    count = 0
-    while not p_obj.finished:
-        if message.process_is_canceled:
-            p_obj.cancel()
-        count += 1
-        if count >= Config.EDIT_SLEEP_TIMEOUT:
-            count = 0
-            await message.try_to_edit(tmp.format(p_obj.progress,
-                                                 p_obj.percentage,
-                                                 file_path,
-                                                 p_obj.final_file_path,
-                                                 p_obj.completed_files,
-                                                 p_obj.total_files))
-        await sleep(1)
+
+    async def _worker():
+        while not p_obj.finished:
+            await message.edit(tmp.format(p_obj.progress,
+                                          p_obj.percentage,
+                                          file_path,
+                                          p_obj.final_file_path,
+                                          p_obj.completed_files,
+                                          p_obj.total_files))
+            await sleep(Config.EDIT_SLEEP_TIMEOUT)
+
+    def _on_cancel():
+        p_obj.cancel()
+        task.cancel()
+
+    task = asyncio.create_task(_worker())
+    with message.cancel_callback(_on_cancel):
+        try:
+            await task
+        except asyncio.CancelledError:
+            await message.canceled()
+            return
+
     if p_obj.output:
-        await message.err(p_obj.output)
+        await message.err(p_obj.output, show_help=False)
     else:
         end_t = datetime.now()
         m_s = (end_t - start_t).seconds
@@ -641,22 +671,31 @@ async def unpack_(message: Message) -> None:
         "**File Path** : `{}`\n" + \
         "**Dest** : `{}`\n" + \
         "**Completed** : `{}/{}`"
-    count = 0
-    while not p_obj.finished:
-        if message.process_is_canceled:
-            p_obj.cancel()
-        count += 1
-        if count >= Config.EDIT_SLEEP_TIMEOUT:
-            count = 0
-            await message.try_to_edit(tmp.format(p_obj.progress,
-                                                 p_obj.percentage,
-                                                 file_path,
-                                                 p_obj.final_file_path,
-                                                 p_obj.completed_files,
-                                                 p_obj.total_files))
-        await sleep(1)
+
+    async def _worker():
+        while not p_obj.finished:
+            await message.edit(tmp.format(p_obj.progress,
+                                          p_obj.percentage,
+                                          file_path,
+                                          p_obj.final_file_path,
+                                          p_obj.completed_files,
+                                          p_obj.total_files))
+            await sleep(Config.EDIT_SLEEP_TIMEOUT)
+
+    def _on_cancel():
+        p_obj.cancel()
+        task.cancel()
+
+    task = asyncio.create_task(_worker())
+    with message.cancel_callback(_on_cancel):
+        try:
+            await task
+        except asyncio.CancelledError:
+            await message.canceled()
+            return
+
     if p_obj.output:
-        await message.err(p_obj.output)
+        await message.err(p_obj.output, show_help=False)
     else:
         end_t = datetime.now()
         m_s = (end_t - start_t).seconds

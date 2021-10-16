@@ -1,3 +1,5 @@
+""" manage your gdrive """
+
 import os
 import io
 import re
@@ -9,10 +11,9 @@ from json import dumps
 from functools import wraps
 from datetime import datetime
 from mimetypes import guess_type
-from urllib.parse import unquote_plus, quote
+from urllib.parse import quote
 
 from httplib2 import Http
-from pySmartDL import SmartDL
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
@@ -20,8 +21,9 @@ from oauth2client.client import (
     OAuth2WebServerFlow, HttpAccessTokenRefreshError, FlowExchangeError)
 
 from gaganrobot import gaganrobot, Message, Config, get_collection, pool
-from gaganrobot.utils import progress, humanbytes, time_formatter
+from gaganrobot.utils import humanbytes, time_formatter
 from gaganrobot.utils.exceptions import ProcessCanceled
+from gaganrobot.plugins.misc.download import url_download, tg_download
 
 _CREDS: object = None
 _AUTH_FLOW: object = None
@@ -34,7 +36,7 @@ G_DRIVE_DIR_MIME_TYPE = "application/vnd.google-apps.folder"
 G_DRIVE_FILE_LINK = "📄 <a href='https://drive.google.com/open?id={}'>{}</a> __({})__"
 G_DRIVE_FOLDER_LINK = "📁 <a href='https://drive.google.com/drive/folders/{}'>{}</a> __(folder)__"
 _GDRIVE_ID = re.compile(
-    r'https://drive.google.com/[\w\?\./&=]+([-\w]{33}|(?<=[/=])0(?:A[-\w]{17}|B[-\w]{26}))')
+    r'https://drive.google.com/[\w?.&=/]+([-\w]{33}|(?<=[/=])0(?:A[-\w]{17}|B[-\w]{26}))')
 
 _LOG = gaganrobot.getLogger(__name__)
 _SAVED_SETTINGS = get_collection("CONFIGS")
@@ -91,7 +93,6 @@ def creds_dec(func):
 
 class _GDrive:
     """ GDrive Class For Search, Upload, Download, Copy, Move, Delete, EmptyTrash, ... """
-
     def __init__(self) -> None:
         self._parent_id = _PARENT_ID or Config.G_DRIVE_PARENT_ID
         self._completed = 0
@@ -114,7 +115,7 @@ class _GDrive:
     @pool.run_in_thread
     def _search(self,
                 search_query: str,
-                flags: list,
+                flags: dict,
                 parent_id: str = "",
                 list_root: bool = False) -> str:
         force = '-f' in flags
@@ -141,8 +142,7 @@ class _GDrive:
                 if len(results) >= limit:
                     break
                 if file_.get('mimeType') == G_DRIVE_DIR_MIME_TYPE:
-                    msg += G_DRIVE_FOLDER_LINK.format(
-                        file_.get('id'), file_.get('name'))
+                    msg += G_DRIVE_FOLDER_LINK.format(file_.get('id'), file_.get('name'))
                 else:
                     msg += G_DRIVE_FILE_LINK.format(
                         file_.get('id'), file_.get('name'), humanbytes(int(file_.get('size', 0))))
@@ -153,7 +153,6 @@ class _GDrive:
             page_token = response.get('nextPageToken', None)
             if page_token is None:
                 break
-        del results
         if not msg:
             return "`Not Found!`"
         if parent_id and not force:
@@ -168,8 +167,7 @@ class _GDrive:
         permissions = {'role': 'reader', 'type': 'anyone'}
         self._service.permissions().create(fileId=file_id, body=permissions,
                                            supportsTeamDrives=True).execute()
-        _LOG.info("Set Permission : %s for Google-Drive File : %s",
-                  permissions, file_id)
+        _LOG.info("Set Permission : %s for Google-Drive File : %s", permissions, file_id)
 
     def _get_file_path(self, file_id: str, file_name: str) -> str:
         tmp_path = [file_name]
@@ -210,13 +208,11 @@ class _GDrive:
         mime_type = guess_type(file_path)[0] or "text/plain"
         file_name = os.path.basename(file_path)
         file_size = os.path.getsize(file_path)
-        body = {"name": file_name, "mimeType": mime_type,
-                "description": "Uploaded using GaganRobot"}
+        body = {"name": file_name, "mimeType": mime_type, "description": "Uploaded using GaganRobot"}
         if parent_id:
             body["parents"] = [parent_id]
         if file_size == 0:
-            media_body = MediaFileUpload(
-                file_path, mimetype=mime_type, resumable=False)
+            media_body = MediaFileUpload(file_path, mimetype=mime_type)
             u_file_obj = self._service.files().create(body=body, media_body=media_body,
                                                       supportsTeamDrives=True).execute()
             file_id = u_file_obj.get("id")
@@ -249,9 +245,9 @@ class _GDrive:
                         "**ETA** : `{}`"
                     self._progress = tmp.format(
                         "".join((Config.FINISHED_PROGRESS_STR
-                                 for i in range(math.floor(percentage / 5)))),
+                                 for _ in range(math.floor(percentage / 5)))),
                         "".join((Config.UNFINISHED_PROGRESS_STR
-                                 for i in range(20 - math.floor(percentage / 5)))),
+                                 for _ in range(20 - math.floor(percentage / 5)))),
                         round(percentage, 2),
                         file_name,
                         humanbytes(f_size),
@@ -280,8 +276,7 @@ class _GDrive:
         if not Config.G_DRIVE_IS_TD:
             self._set_permission(file_id)
         self._completed += 1
-        _LOG.info("Created Google-Drive Folder => Name: %s ID: %s ",
-                  file_name, file_id)
+        _LOG.info("Created Google-Drive Folder => Name: %s ID: %s ", file_name, file_id)
         return file_id
 
     def _upload_dir(self, input_directory: str, parent_id: str) -> str:
@@ -320,11 +315,9 @@ class _GDrive:
             self._finish()
 
     def _download_file(self, path: str, name: str, **kwargs) -> None:
-        request = self._service.files().get_media(
-            fileId=kwargs['id'], supportsTeamDrives=True)
+        request = self._service.files().get_media(fileId=kwargs['id'], supportsTeamDrives=True)
         with io.FileIO(os.path.join(path, name), 'wb') as d_f:
-            d_file_obj = MediaIoBaseDownload(
-                d_f, request, chunksize=50*1024*1024)
+            d_file_obj = MediaIoBaseDownload(d_f, request, chunksize=50*1024*1024)
             c_time = time.time()
             done = False
             while done is False:
@@ -349,9 +342,9 @@ class _GDrive:
                         "**ETA** : `{}`"
                     self._progress = tmp.format(
                         "".join((Config.FINISHED_PROGRESS_STR
-                                 for i in range(math.floor(percentage / 5)))),
+                                 for _ in range(math.floor(percentage / 5)))),
                         "".join((Config.UNFINISHED_PROGRESS_STR
-                                 for i in range(20 - math.floor(percentage / 5)))),
+                                 for _ in range(20 - math.floor(percentage / 5)))),
                         round(percentage, 2),
                         name,
                         humanbytes(f_size),
@@ -412,8 +405,7 @@ class _GDrive:
             drive_file = self._service.files().get(fileId=file_id, fields="id, name, mimeType",
                                                    supportsTeamDrives=True).execute()
             if drive_file['mimeType'] == G_DRIVE_DIR_MIME_TYPE:
-                path = self._create_server_dir(
-                    Config.DOWN_PATH, drive_file['name'])
+                path = self._create_server_dir(Config.DOWN_PATH, drive_file['name'])
                 self._download_dir(path, **drive_file)
             else:
                 self._download_file(Config.DOWN_PATH, **drive_file)
@@ -441,9 +433,9 @@ class _GDrive:
             "**Completed** : `{}/{}`"
         self._progress = tmp.format(
             "".join((Config.FINISHED_PROGRESS_STR
-                     for i in range(math.floor(percentage / 5)))),
+                     for _ in range(math.floor(percentage / 5)))),
             "".join((Config.UNFINISHED_PROGRESS_STR
-                     for i in range(20 - math.floor(percentage / 5)))),
+                     for _ in range(20 - math.floor(percentage / 5)))),
             round(percentage, 2),
             self._completed,
             self._list)
@@ -466,6 +458,7 @@ class _GDrive:
                 new_id = self._copy_dir(file_['id'], dir_id)
             else:
                 self._copy_file(file_['id'], parent_id)
+                time.sleep(0.5)  # due to user rate limits
                 new_id = parent_id
         return new_id
 
@@ -474,8 +467,7 @@ class _GDrive:
             drive_file = self._service.files().get(
                 fileId=file_id, fields="name, mimeType", supportsTeamDrives=True).execute()
             if drive_file['mimeType'] == G_DRIVE_DIR_MIME_TYPE:
-                dir_id = self._create_drive_dir(
-                    drive_file['name'], self._parent_id)
+                dir_id = self._create_drive_dir(drive_file['name'], self._parent_id)
                 self._copy_dir(file_id, dir_id)
                 ret_id = dir_id
             else:
@@ -499,8 +491,7 @@ class _GDrive:
         file_name = file_.get("name")
         if not Config.G_DRIVE_IS_TD:
             self._set_permission(file_id)
-        _LOG.info("Created Google-Drive Folder => Name: %s ID: %s ",
-                  file_name, file_id)
+        _LOG.info("Created Google-Drive Folder => Name: %s ID: %s ", file_name, file_id)
         return G_DRIVE_FOLDER_LINK.format(file_id, file_name)
 
     @pool.run_in_thread
@@ -532,8 +523,7 @@ class _GDrive:
         drive_file = self._service.files().get(fileId=file_id, fields='*',
                                                supportsTeamDrives=True).execute()
         drive_file['size'] = humanbytes(int(drive_file.get('size', 0)))
-        drive_file['quotaBytesUsed'] = humanbytes(
-            int(drive_file.get('quotaBytesUsed', 0)))
+        drive_file['quotaBytesUsed'] = humanbytes(int(drive_file.get('quotaBytesUsed', 0)))
         drive_file = dumps(drive_file, sort_keys=True, indent=4)
         _LOG.info("Getting Google-Drive File Details => %s", drive_file)
         return drive_file
@@ -549,8 +539,7 @@ class _GDrive:
                                                    permissionId=perm_id).execute()
             all_perms[perm_id] = perm
         all_perms = dumps(all_perms, sort_keys=True, indent=4)
-        _LOG.info("All Permissions: %s for Google-Drive File : %s",
-                  all_perms, file_id)
+        _LOG.info("All Permissions: %s for Google-Drive File : %s", all_perms, file_id)
         return all_perms
 
     @pool.run_in_thread
@@ -589,7 +578,6 @@ class _GDrive:
 
 class Worker(_GDrive):
     """ Worker Class for GDrive """
-
     def __init__(self, message: Message) -> None:
         self._message = message
         super().__init__()
@@ -634,7 +622,7 @@ class Worker(_GDrive):
             cred = _AUTH_FLOW.step2_exchange(self._message.input_str)
         except FlowExchangeError as c_i:
             _LOG.exception(c_i)
-            await self._message.err(c_i)
+            await self._message.err(str(c_i))
         else:
             _AUTH_FLOW = None
             await asyncio.gather(
@@ -698,7 +686,7 @@ class Worker(_GDrive):
             await self._message.edit("First set parent path by `.gset`", del_in=5)
             return
         if not self._message.input_str:
-            await self._message.edit("Please give name for folder", del_in=5)
+            await self._message.err("Please give name for folder")
             return
         try:
             out = await self._create_drive_folder(self._message.input_str, self._parent_id)
@@ -735,75 +723,25 @@ class Worker(_GDrive):
         """ Upload from file/folder/link/tg file to GDrive """
         replied = self._message.reply_to_message
         is_url = re.search(
-            r"(?:https?|ftp)://[^\|\s]+\.[^\|\s]+", self._message.input_str)
-        dl_loc = None
+            r"(?:https?|ftp)://[^|\s]+\.[^|\s]+", self._message.input_str)
+        dl_loc = ""
         if replied and replied.media:
-            await self._message.edit("`Downloading From TG...`")
-            file_name = Config.DOWN_PATH
-            if self._message.input_str:
-                file_name = os.path.join(
-                    Config.DOWN_PATH, self._message.input_str)
-            dl_loc = await self._message.client.download_media(
-                message=replied,
-                file_name=file_name,
-                progress=progress,
-                progress_args=(self._message, "trying to download")
-            )
-            if self._message.process_is_canceled:
-                await self._message.edit("`Process Canceled!`", del_in=5)
-                return
-            dl_loc = os.path.join(Config.DOWN_PATH, os.path.basename(dl_loc))
-        elif is_url:
-            await self._message.edit("`Downloading From URL...`")
-            url = is_url[0]
-            file_name = unquote_plus(os.path.basename(url))
-            if "|" in self._message.input_str:
-                file_name = self._message.input_str.split("|")[1].strip()
-            dl_loc = os.path.join(Config.DOWN_PATH, file_name)
             try:
-                downloader = SmartDL(url, dl_loc, progress_bar=False)
-                downloader.start(blocking=False)
-                count = 0
-                while not downloader.isFinished():
-                    if self._message.process_is_canceled:
-                        downloader.stop()
-                        raise Exception('Process Canceled!')
-                    total_length = downloader.filesize if downloader.filesize else 0
-                    downloaded = downloader.get_dl_size()
-                    percentage = downloader.get_progress() * 100
-                    speed = downloader.get_speed(human=True)
-                    estimated_total_time = downloader.get_eta(human=True)
-                    progress_str = \
-                        "__{}__\n" + \
-                        "```[{}{}]```\n" + \
-                        "**Progress** : `{}%`\n" + \
-                        "**URL** : `{}`\n" + \
-                        "**FILENAME** : `{}`\n" + \
-                        "**Completed** : `{}`\n" + \
-                        "**Total** : `{}`\n" + \
-                        "**Speed** : `{}`\n" + \
-                        "**ETA** : `{}`"
-                    progress_str = progress_str.format(
-                        "trying to download",
-                        ''.join((Config.FINISHED_PROGRESS_STR
-                                 for i in range(math.floor(percentage / 5)))),
-                        ''.join((Config.UNFINISHED_PROGRESS_STR
-                                 for i in range(20 - math.floor(percentage / 5)))),
-                        round(percentage, 2),
-                        url,
-                        file_name,
-                        humanbytes(downloaded),
-                        humanbytes(total_length),
-                        speed,
-                        estimated_total_time)
-                    count += 1
-                    if count >= Config.EDIT_SLEEP_TIMEOUT:
-                        count = 0
-                        await self._message.try_to_edit(
-                            progress_str, disable_web_page_preview=True)
-                    await asyncio.sleep(1)
-            except Exception as d_e:
-                await self._message.err(d_e)
+                dl_loc, _ = await tg_download(self._message, replied)
+            except ProcessCanceled:
+                await self._message.canceled()
+                return
+            except Exception as e_e:
+                await self._message.err(str(e_e))
+                return
+        elif is_url:
+            try:
+                dl_loc, _ = await url_download(self._message, self._message.input_str)
+            except ProcessCanceled:
+                await self._message.canceled()
+                return
+            except Exception as e_e:
+                await self._message.err(str(e_e))
                 return
         file_path = dl_loc if dl_loc else self._message.input_str
         if not os.path.exists(file_path):
@@ -811,22 +749,17 @@ class Worker(_GDrive):
             return
         if "|" in file_path:
             file_path, file_name = file_path.split("|")
-            new_path = os.path.join(os.path.dirname(
-                file_path.strip()), file_name.strip())
+            new_path = os.path.join(os.path.dirname(file_path.strip()), file_name.strip())
             os.rename(file_path.strip(), new_path)
             file_path = new_path
         await self._message.try_to_edit("`Loading GDrive Upload...`")
         pool.submit_thread(self._upload, file_path)
         start_t = datetime.now()
-        count = 0
-        while not self._is_finished:
-            count += 1
-            if self._message.process_is_canceled:
-                self._cancel()
-            if self._progress is not None and count >= Config.EDIT_SLEEP_TIMEOUT:
-                count = 0
-                await self._message.try_to_edit(self._progress)
-            await asyncio.sleep(1)
+        with self._message.cancel_callback(self._cancel):
+            while not self._is_finished:
+                if self._progress is not None:
+                    await self._message.edit(self._progress)
+                await asyncio.sleep(Config.EDIT_SLEEP_TIMEOUT)
         if dl_loc and os.path.exists(dl_loc):
             os.remove(dl_loc)
         end_t = datetime.now()
@@ -848,15 +781,11 @@ class Worker(_GDrive):
         file_id, _ = self._get_file_id()
         pool.submit_thread(self._download, file_id)
         start_t = datetime.now()
-        count = 0
-        while not self._is_finished:
-            count += 1
-            if self._message.process_is_canceled:
-                self._cancel()
-            if self._progress is not None and count >= Config.EDIT_SLEEP_TIMEOUT:
-                count = 0
-                await self._message.try_to_edit(self._progress)
-            await asyncio.sleep(1)
+        with self._message.cancel_callback(self._cancel):
+            while not self._is_finished:
+                if self._progress is not None:
+                    await self._message.edit(self._progress)
+                await asyncio.sleep(Config.EDIT_SLEEP_TIMEOUT)
         end_t = datetime.now()
         m_s = (end_t - start_t).seconds
         if isinstance(self._output, HttpError):
@@ -879,15 +808,11 @@ class Worker(_GDrive):
         file_id, _ = self._get_file_id()
         pool.submit_thread(self._copy, file_id)
         start_t = datetime.now()
-        count = 0
-        while not self._is_finished:
-            count += 1
-            if self._message.process_is_canceled:
-                self._cancel()
-            if self._progress is not None and count >= Config.EDIT_SLEEP_TIMEOUT:
-                count = 0
-                await self._message.try_to_edit(self._progress)
-            await asyncio.sleep(1)
+        with self._message.cancel_callback(self._cancel):
+            while not self._is_finished:
+                if self._progress is not None:
+                    await self._message.edit(self._progress)
+                await asyncio.sleep(Config.EDIT_SLEEP_TIMEOUT)
         end_t = datetime.now()
         m_s = (end_t - start_t).seconds
         if isinstance(self._output, HttpError):
@@ -1011,7 +936,16 @@ class Worker(_GDrive):
     'header': "Setup GDrive Creds"})
 async def gsetup_(message: Message):
     """ setup creds """
-    await Worker(message).setup()
+    link = "https://theuserge.github.io/deployment.html#6-g_drive_client_id--g_drive_client_secret"
+    if Config.G_DRIVE_CLIENT_ID and Config.G_DRIVE_CLIENT_SECRET:
+        if message.chat.id in Config.AUTH_CHATS:
+            await Worker(message).setup()
+        else:
+            await message.edit("`try in log channel`", del_in=5)
+    else:
+        await message.edit(
+            "`G_DRIVE_CLIENT_ID` and `G_DRIVE_CLIENT_SECRET` not found!\n"
+            f"[Read this]({link}) to know more.", disable_web_page_preview=True)
 
 
 @gaganrobot.on_cmd("gconf", about={

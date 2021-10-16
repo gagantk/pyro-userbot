@@ -1,11 +1,13 @@
+""" work with youtube """
+
 import os
 import glob
+import importlib
 from pathlib import Path
 from time import time
 from math import floor
 
 import wget
-import youtube_dl as ytdl
 
 from gaganrobot import gaganrobot, Message, Config, pool
 from gaganrobot.utils import time_formatter, humanbytes
@@ -14,10 +16,18 @@ from .upload import upload
 LOGGER = gaganrobot.getLogger(__name__)
 
 
+reqd_module = os.environ.get("YOUTUBE-DL-PATH", "youtube_dl")
+try:
+    globals()["ytdl"] = importlib.import_module(reqd_module)
+except ModuleNotFoundError:
+    LOGGER.info("please fix your requirements.txt file")
+    raise
+
+
 @gaganrobot.on_cmd("ytinfo", about={'header': "Get info from ytdl",
-                                    'description': 'Get information of the link without downloading',
-                                    'examples': '{tr}ytinfo link',
-                                    'others': 'To get info about direct links, use `{tr}head link`'})
+                                'description': 'Get information of the link without downloading',
+                                'examples': '{tr}ytinfo link',
+                                'others': 'To get info about direct links, use `{tr}head link`'})
 async def ytinfo(message: Message):
     """ get info from a link """
     await message.edit("Hold on \u23f3 ..")
@@ -35,8 +45,8 @@ __{uploader}__
 {table}
     """.format_map(_exracted)
     if _exracted['thumb']:
-        _tmp = wget.download(_exracted['thumb'], os.path.join(
-            Config.DOWN_PATH, f"{time()}.jpg"))
+        _tmp = await pool.run_in_thread(wget.download)(
+            _exracted['thumb'], os.path.join(Config.DOWN_PATH, f"{time()}.jpg"))
         await message.reply_photo(_tmp, caption=out)
         await message.delete()
         os.remove(_tmp)
@@ -45,15 +55,15 @@ __{uploader}__
 
 
 @gaganrobot.on_cmd("ytdl", about={'header': "Download from youtube",
-                                  'options': {'-a': 'select the audio u-id',
-                                              '-v': 'select the video u-id',
-                                              '-m': 'extract the mp3 in 320kbps',
-                                              '-t': 'upload to telegram'},
-                                  'examples': ['{tr}ytdl link',
-                                               '{tr}ytdl -a12 -v120 link',
-                                               '{tr}ytdl -m -t link will upload the mp3',
-                                               '{tr}ytdl -m -t -d link will upload '
-                                               'the mp3 as a document']}, del_pre=True)
+                              'options': {'-a': 'select the audio u-id',
+                                          '-v': 'select the video u-id',
+                                          '-m': 'extract the mp3 in 320kbps',
+                                          '-t': 'upload to telegram'},
+                              'examples': ['{tr}ytdl link',
+                                           '{tr}ytdl -a12 -v120 link',
+                                           '{tr}ytdl -m -t link will upload the mp3',
+                                           '{tr}ytdl -m -t -d link will upload '
+                                           'the mp3 as a document']}, del_pre=True)
 async def ytDown(message: Message):
     """ download from a link """
     edited = False
@@ -69,62 +79,26 @@ async def ytDown(message: Message):
             speed = data.get('speed')
             if not (eta and speed):
                 return
+            out = "**Speed** >> {}/s\n**ETA** >> {}\n".format(
+                humanbytes(speed), time_formatter(eta))
+            out += f'**File Name** >> `{data["filename"]}`\n\n'
             current = data.get('downloaded_bytes')
             total = data.get("total_bytes")
-            progress_str = f"**FILENAME**: `{data['filename']}`\n" + \
-                f"**Speed**: `{humanbytes(speed)}`\n" + \
-                f"**ETA**: `{time_formatter(eta)}`"
             if current and total:
                 percentage = int(current) * 100 / int(total)
-                fin = ''.join((Config.FINISHED_PROGRESS_STR
-                               for i in range(floor(percentage / 5))))
-                unfin = ''.join((Config.UNFINISHED_PROGRESS_STR
-                                 for i in range(20 - floor(percentage / 5))))
-                progress_str = f"__Downloading__\n" + \
-                    f"```[{fin}{unfin}]```\n" + \
-                    f"**Progress**: `{round(percentage, 2)}%`\n" + \
-                    f"**Completed**: `{humanbytes(current)}`\n" + \
-                    f"**Total**: `{humanbytes(total)}`\n" + progress_str
-            gaganrobot.loop.create_task(message.edit(progress_str))
-            # if message.text != progress_str:
-            #     asyncio.get_event_loop().run_until_complete(message.edit(progress_str))
-
-        # if ((time() - startTime) % 4) > 3.9:
-        #     if data['status'] == "downloading":
-        #         eta = data.get('eta')
-        #         speed = data.get('speed')
-        #         if not (eta and speed):
-        #             return
-        #         out = "**Speed** >> {}/s\n**ETA** >> {}\n".format(
-        #             humanbytes(speed), time_formatter(eta))
-        #         out += f'**File Name** >> `{data["filename"]}`\n\n'
-        #         current = data.get('downloaded_bytes')
-        #         total = data.get("total_bytes")
-        #         print(out)
-        #         if current and total:
-        #             percentage = int(current) * 100 / int(total)
-        #             out += f"Progress >> {int(percentage)}%\n"
-        #             out += "[{}{}]".format(
-        #                 ''.join((Config.FINISHED_PROGRESS_STR
-        #                          for _ in range(floor(percentage / 5)))),
-        #                 ''.join((Config.UNFINISHED_PROGRESS_STR
-        #                          for _ in range(20 - floor(percentage / 5)))))
-        #         print(message.text)
-        #         print(out)
-        #         if message.text != out:
-        #             asyncio.get_event_loop().run_until_complete(message.edit(out))
+                out += f"Progress >> {int(percentage)}%\n"
+                out += "[{}{}]".format(
+                    ''.join((Config.FINISHED_PROGRESS_STR
+                             for _ in range(floor(percentage / 5)))),
+                    ''.join((Config.UNFINISHED_PROGRESS_STR
+                             for _ in range(20 - floor(percentage / 5)))))
+            gaganrobot.loop.create_task(message.edit(out))
 
     await message.edit("Hold on \u23f3 ..")
-    startTime = time()
     if bool(message.flags):
         desiredFormat1 = str(message.flags.get('a', ''))
         desiredFormat2 = str(message.flags.get('v', ''))
-        useragent = None
-        if len(message.input_str.split(' | ')) == 2:
-            useragent = message.input_str.split(' | ')[1]
-            print(useragent)
-            retcode = await _tubeDl([message.filtered_input_str], __progress, startTime, None, useragent)
-        elif 'm' in message.flags:
+        if 'm' in message.flags:
             retcode = await _mp3Dl([message.filtered_input_str], __progress, startTime)
         elif all(k in message.flags for k in ("a", "v")):
             # 1st format must contain the video
@@ -140,11 +114,9 @@ async def ytDown(message: Message):
             retcode = await _tubeDl(
                 [message.filtered_input_str], __progress, startTime, desiredFormat)
         else:
-            retcode = await _tubeDl(
-                [message.filtered_input_str], __progress, startTime, None)
+            retcode = await _tubeDl([message.filtered_input_str], __progress, startTime)
     else:
-        retcode = await _tubeDl(
-            [message.filtered_input_str], __progress, startTime, None)
+        retcode = await _tubeDl([message.filtered_input_str], __progress, startTime)
     if retcode == 0:
         _fpath = ''
         for _path in glob.glob(os.path.join(Config.DOWN_PATH, str(startTime), '*')):
@@ -161,8 +133,8 @@ async def ytDown(message: Message):
 
 
 @gaganrobot.on_cmd("ytdes", about={'header': "Get the video description",
-                                   'description': 'Get information of the link without downloading',
-                                   'examples': '{tr}ytdes link'})
+                               'description': 'Get information of the link without downloading',
+                               'examples': '{tr}ytdes link'})
 async def ytdes(message: Message):
     """ get description from a link """
     await message.edit("Hold on \u23f3 ..")
@@ -218,19 +190,16 @@ def _supported(url):
 
 
 @pool.run_in_thread
-def _tubeDl(url: list, prog, starttime, uid=None, useragent=None):
+def _tubeDl(url: list, prog, starttime, uid=None):
     _opts = {'outtmpl': os.path.join(Config.DOWN_PATH, str(starttime),
                                      '%(title)s-%(format)s.%(ext)s'),
              'logger': LOGGER,
              'writethumbnail': True,
              'prefer_ffmpeg': True,
              'postprocessors': [
-                 {'key': 'FFmpegMetadata'}
-    ]}
+                 {'key': 'FFmpegMetadata'}]}
     _quality = {'format': 'bestvideo+bestaudio/best' if not uid else str(uid)}
     _opts.update(_quality)
-    if useragent:
-        ytdl.utils.std_headers['User-Agent'] = useragent
     try:
         x = ytdl.YoutubeDL(_opts)
         x.add_progress_hook(prog)
@@ -256,8 +225,7 @@ def _mp3Dl(url, prog, starttime):
                      'preferredquality': '320',
                  },
                  # {'key': 'EmbedThumbnail'},  ERROR: Conversion failed!
-                 {'key': 'FFmpegMetadata'}
-    ]}
+                 {'key': 'FFmpegMetadata'}]}
     try:
         x = ytdl.YoutubeDL(_opts)
         x.add_progress_hook(prog)

@@ -27,10 +27,9 @@ async def quotecmd(message: Message):
             return
         quote = await conv.get_response(mark_read=True)
         if not quote.sticker:
-            await message.err('something went wrong!')
+            await message.edit('something went wrong!, see here: @QuotlyBot')
         else:
             message_id = replied.message_id if replied else None
             await gaganrobot.send_sticker(chat_id=message.chat.id,
-                                          sticker=quote.sticker.file_id,
-                                          file_ref=quote.sticker.file_ref,
-                                          reply_to_message_id=message_id)
+                                      sticker=quote.sticker.file_id,
+                                      reply_to_message_id=message_id)

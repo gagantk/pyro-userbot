@@ -9,7 +9,7 @@ from pyrogram.errors.exceptions import FloodWait
 import gaganrobot
 from .tools import humanbytes, time_formatter
 
-_TASKS: Dict[str, Tuple[int, int]] = {}
+_TASKS: Dict[str, Tuple[float, float]] = {}
 
 
 async def progress(current: int,
@@ -27,7 +27,7 @@ async def progress(current: int,
             return
         del _TASKS[task_id]
         try:
-            await message.try_to_edit("`finalizing process ...`")
+            await message.edit("`finalizing process ...`")
         except FloodWait as f_e:
             time.sleep(f_e.x)
         return
@@ -53,15 +53,15 @@ async def progress(current: int,
             ud_type,
             file_name,
             ''.join((gaganrobot.Config.FINISHED_PROGRESS_STR
-                     for i in range(floor(percentage / 5)))),
+                     for _ in range(floor(percentage / 5)))),
             ''.join((gaganrobot.Config.UNFINISHED_PROGRESS_STR
-                     for i in range(20 - floor(percentage / 5)))),
+                     for _ in range(20 - floor(percentage / 5)))),
             round(percentage, 2),
             humanbytes(current),
             humanbytes(total),
             humanbytes(speed),
             time_to_completion if time_to_completion else "0 s")
         try:
-            await message.try_to_edit(progress_str)
+            await message.edit(progress_str)
         except FloodWait as f_e:
             time.sleep(f_e.x)

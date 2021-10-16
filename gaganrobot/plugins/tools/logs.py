@@ -1,16 +1,4 @@
-import aiofiles
-
-from gaganrobot import gaganrobot, Message, logging
-
-
-@gaganrobot.on_cmd("logs", about={'header': "check gaganrobot logs"}, allow_channels=False)
-async def check_logs(message: Message):
-    """ check logs """
-    await message.edit("`checking logs ...`")
-    async with aiofiles.open("logs/gaganrobot.log", "r") as l_f:
-        await message.edit_or_send_as_file(f"**GAGANROBOT LOGS** :\n\n`{await l_f.read()}`",
-                                           filename='gaganrobot.log',
-                                           caption='gaganrobot.log')
+from gaganrobot import gaganrobot, Message, logging, Config, pool
 
 _LEVELS = {
     'debug': logging.DEBUG,
@@ -19,6 +7,28 @@ _LEVELS = {
     'error': logging.ERROR,
     'critical': logging.CRITICAL
 }
+
+
+@gaganrobot.on_cmd("logs", about={
+    'header': "check gaganrobot logs",
+    'flags': {
+        '-h': "get heroku logs",
+        '-l': "heroku logs lines limit : default 100"}}, allow_channels=False)
+async def check_logs(message: Message):
+    """ check logs """
+    await message.edit("`checking logs ...`")
+    if '-h' in message.flags and Config.HEROKU_APP:
+        limit = int(message.flags.get('-l', 100))
+        logs = await pool.run_in_thread(Config.HEROKU_APP.get_log)(lines=limit)
+        await message.client.send_as_file(chat_id=message.chat.id,
+                                          text=logs,
+                                          filename='gaganrobot-heroku.log',
+                                          caption=f'gaganrobot-heroku.log [ {limit} lines ]')
+    else:
+        await message.client.send_document(chat_id=message.chat.id,
+                                           document="logs/gaganrobot.log",
+                                           caption='gaganrobot.log')
+    await message.delete()
 
 
 @gaganrobot.on_cmd("setlvl", about={

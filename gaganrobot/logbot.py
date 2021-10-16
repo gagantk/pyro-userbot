@@ -1,7 +1,6 @@
 # pylint: disable=missing-module-docstring
 
-__all__ = ["send_msg", "reply_last_msg",
-           "edit_last_msg", "del_last_msg", "end"]
+__all__ = ["send_msg", "reply_last_msg", "edit_last_msg", "del_last_msg", "end"]
 
 
 def _log(func):

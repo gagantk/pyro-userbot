@@ -59,9 +59,9 @@ async def carbon_(message: Message):
             await asyncio.gather(
                 message.delete(),
                 gaganrobot.send_document(chat_id=message.chat.id,
-                                         document=file_id,
-                                         caption='`' + caption + '`',
-                                         reply_to_message_id=replied.message_id if replied else None)
+                                     document=file_id,
+                                     caption='`' + caption + '`',
+                                     reply_to_message_id=replied.message_id if replied else None)
             )
     else:
         input_str = message.filtered_input_str
@@ -146,8 +146,7 @@ async def carbon_(message: Message):
         await message.edit("`Processing... 60%`")
         driver.find_element_by_xpath("//button[contains(text(),'4x')]").click()
         await asyncio.sleep(1)
-        driver.find_element_by_xpath(
-            "//button[contains(text(),'PNG')]").click()
+        driver.find_element_by_id("export-png").click()
         await message.edit("`Processing... 80%`")
         while not os.path.isfile(carbon_path):
             await asyncio.sleep(0.5)

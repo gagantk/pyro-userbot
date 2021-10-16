@@ -23,6 +23,9 @@ class Conversation:  # pylint: disable=missing-class-docstring
                 For a contact that exists in your Telegram address book
                 you can use his phone number (str).
 
+            user_id (``int`` | ``str`` | , *optional*):
+                define a specific user in this chat.
+
             timeout (``int`` | ``float`` | , *optional*):
                 set conversation timeout.
                 defaults to 10.

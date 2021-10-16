@@ -1,11 +1,19 @@
 #!/bin/bash
 
 . init/logbot/logbot.sh
+. init/proc.sh
 . init/utils.sh
 . init/checks.sh
 
-trap handleSigTerm TERM
-trap handleSigInt INT
+trap 'handleSig SIGHUP' HUP
+trap 'handleSig SIGTERM' TERM
+trap 'handleSig SIGINT' INT
+trap '' USR1
+
+handleSig() {
+    log "Exiting With $1 ..."
+    killProc
+}
 
 initGaganRobot() {
     printLogo
@@ -17,29 +25,19 @@ initGaganRobot() {
 }
 
 startGaganRobot() {
+    startLogBotPolling
     runPythonModule gaganrobot "$@"
 }
 
 stopGaganRobot() {
     sendMessage "Exiting GaganRobot ..."
-}
-
-handleSigTerm() {
-    log "Exiting With SIGTERM (143) ..."
-    stopGaganRobot
     endLogBotPolling
-    exit 143
-}
-handleSigInt() {
-    log "Exiting With SIGINT (130) ..."
-    stopGaganRobot
-    endLogBotPolling
-    exit 130
 }
 
 runGaganRobot() {
     initGaganRobot
-    startLogBotPolling
     startGaganRobot "$@"
+    local code=$?
     stopGaganRobot
+    return $code
 }

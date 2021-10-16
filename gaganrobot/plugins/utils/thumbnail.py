@@ -1,7 +1,11 @@
+""" custom thumbnail """
+
 import os
 import base64
 from datetime import datetime
+
 import aiofiles
+
 from gaganrobot import gaganrobot, Config, Message, get_collection
 from gaganrobot.utils import progress
 
@@ -71,4 +75,4 @@ async def get_thumb_nail(message: Message):
         await CHANNEL.fwd_msg(msg)
         await message.delete()
     else:
-        await message.err("Custom Thumbnail Not Found!")
+        await message.edit("`Custom Thumbnail Not Found!`", del_in=5)

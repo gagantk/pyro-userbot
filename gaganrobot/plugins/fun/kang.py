@@ -1,13 +1,12 @@
 import io
 import os
 import random
-import emoji
-import aiohttp
 
 from PIL import Image
+from pyrogram import emoji
 from pyrogram.raw.functions.messages import GetStickerSet
 from pyrogram.raw.types import InputStickerSetShortName
-from pyrogram.errors.exceptions.bad_request_400 import YouBlockedUser
+from pyrogram.errors import YouBlockedUser, StickersetInvalid
 
 from gaganrobot import gaganrobot, Message, Config
 
@@ -15,16 +14,21 @@ from gaganrobot import gaganrobot, Message, Config
 @gaganrobot.on_cmd(
     "kang", about={
         'header': "kangs stickers or creates new ones",
+        'flags': {
+            '-s': "without link",
+            '-d': "without trace"},
         'usage': "Reply {tr}kang [emoji('s)] [pack number] to a sticker or "
                  "an image to kang it to your userbot pack.",
-        'examples': ["{tr}kang", "{tr}kang 🤔", "{tr}kang 2", "{tr}kang 🤔 2"]},
+        'examples': ["{tr}kang", "{tr}kang -s", "{tr}kang -d",
+                     "{tr}kang 🤔😎", "{tr}kang 2", "{tr}kang 🤔🤣😂 2"]},
     allow_channels=False, allow_via_bot=False)
 async def kang_(message: Message):
     """ kang a sticker """
     user = await gaganrobot.get_me()
     replied = message.reply_to_message
     photo = None
-    emoji_ = None
+    _emoji = None
+    emoji_ = ""
     is_anim = False
     resize = False
     if replied and replied.media:
@@ -47,26 +51,33 @@ async def kang_(message: Message):
             return
         await message.edit(f"`{random.choice(KANGING_STR)}`")
         photo = await gaganrobot.download_media(message=replied,
-                                                file_name=Config.DOWN_PATH)
+                                            file_name=Config.DOWN_PATH)
     else:
-        await message.edit("`I can't kang that...`")
+        await message.err("`I can't kang that...`")
         return
     if photo:
-        args = message.input_str.split()
-        if not emoji:
-            emoji = "🤔"
+        args = message.filtered_input_str.split(' ')
         pack = 1
         if len(args) == 2:
-            emoji_, pack = args
+            _emoji, pack = args
         elif len(args) == 1:
             if args[0].isnumeric():
                 pack = int(args[0])
             else:
-                emoji_ = args[0]
-        if emoji_ and emoji_ not in emoji.UNICODE_EMOJI:
-            emoji_ = None
+                _emoji = args[0]
+
+        if _emoji is not None:
+            _saved = emoji_
+            for k in _emoji:
+                if k and k in (
+                    getattr(emoji, a) for a in dir(emoji) if not a.startswith("_")
+                ):
+                    emoji_ += k
+            if _saved and _saved != emoji_:
+                emoji_ = emoji_[len(_saved):]
         if not emoji_:
             emoji_ = "🤔"
+
         u_name = user.username
         if u_name:
             u_name = "@" + u_name
@@ -82,11 +93,15 @@ async def kang_(message: Message):
             packname += "_anim"
             packnick += " (Animated)"
             cmd = '/newanimated'
-        async with aiohttp.ClientSession() as ses:
-            async with ses.get(f'http://t.me/addstickers/{packname}') as res:
-                htmlstr = (await res.text()).split('\n')
-        if ("  A <strong>Telegram</strong> user has created "
-                "the <strong>Sticker&nbsp;Set</strong>.") not in htmlstr:
+        exist = False
+        try:
+            exist = await message.client.send(
+                GetStickerSet(
+                    stickerset=InputStickerSetShortName(
+                        short_name=packname)))
+        except StickersetInvalid:
+            pass
+        if exist is not False:
             async with gaganrobot.conversation('Stickers', limit=30) as conv:
                 try:
                     await conv.send_message('/addsticker')
@@ -99,8 +114,8 @@ async def kang_(message: Message):
                 limit = "50" if is_anim else "120"
                 while limit in msg.text:
                     pack += 1
-                    packname = f"a{user.id}_by_{user.username}_{pack}"
-                    f"{custom_packnick} Vol.{pack}"
+                    packname = f"a{user.id}_by_gaganrobot_{pack}"
+                    packnick = f"{custom_packnick} Vol.{pack}"
                     if is_anim:
                         packname += "_anim"
                         packnick += " (Animated)"
@@ -120,16 +135,18 @@ async def kang_(message: Message):
                         await conv.send_message("/publish")
                         if is_anim:
                             await conv.get_response(mark_read=True)
-                            await conv.send_message(f"<{packnick}>")
+                            await conv.send_message(f"<{packnick}>", parse_mode=None)
                         await conv.get_response(mark_read=True)
                         await conv.send_message("/skip")
                         await conv.get_response(mark_read=True)
                         await conv.send_message(packname)
                         await conv.get_response(mark_read=True)
-                        await message.edit(
-                            f"`Sticker added in a Different Pack !\n"
-                            "This Pack is Newly created!\n"
-                            f"Your pack can be found [here](t.me/addstickers/{packname})")
+                        if '-d' in message.flags:
+                            await message.delete()
+                        else:
+                            out = "__kanged__" if '-s' in message.flags else \
+                                f"[kanged](t.me/addstickers/{packname})"
+                            await message.edit(f"**Sticker** {out} __in a Different Pack__**!**")
                         return
                 await conv.send_document(photo)
                 rsp = await conv.get_response(mark_read=True)
@@ -163,13 +180,18 @@ async def kang_(message: Message):
                 await conv.send_message("/publish")
                 if is_anim:
                     await conv.get_response(mark_read=True)
-                    await conv.send_message(f"<{packnick}>")
+                    await conv.send_message(f"<{packnick}>", parse_mode=None)
                 await conv.get_response(mark_read=True)
                 await conv.send_message("/skip")
                 await conv.get_response(mark_read=True)
                 await conv.send_message(packname)
                 await conv.get_response(mark_read=True)
-        await message.edit(f"**Sticker** [kanged](t.me/addstickers/{packname})")
+        if '-d' in message.flags:
+            await message.delete()
+        else:
+            out = "__kanged__" if '-s' in message.flags else \
+                f"[kanged](t.me/addstickers/{packname})"
+            await message.edit(f"**Sticker** {out}**!**")
         if os.path.exists(str(photo)):
             os.remove(photo)
 
@@ -181,10 +203,10 @@ async def sticker_pack_info_(message: Message):
     """ get sticker pack info """
     replied = message.reply_to_message
     if not replied:
-        await message.edit("`I can't fetch info from nothing, can I ?!`")
+        await message.err("`I can't fetch info from nothing, can I ?!`")
         return
     if not replied.sticker:
-        await message.edit("`Reply to a sticker to get the pack details`")
+        await message.err("`Reply to a sticker to get the pack details`")
         return
     await message.edit("`Fetching details of the sticker pack, please wait..`")
     get_stickerset = await message.client.send(

@@ -1,6 +1,6 @@
 # pylint: disable=missing-module-docstring
 
-from pyrogram.types import Message as RawMessage
+from pyrogram.types import Message as RawMessage  # noqa
 
-from . import pool
-from .raw_client import RawClient
+from . import pool  # noqa
+from .raw_client import RawClient  # noqa

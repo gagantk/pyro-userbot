@@ -1,7 +1,9 @@
 import os
-import wget
+
 import speedtest
-from gaganrobot import gaganrobot, Message
+import wget
+
+from gaganrobot import gaganrobot, Message, pool
 from gaganrobot.utils import humanbytes
 
 CHANNEL = gaganrobot.getCLogger(__name__)
@@ -20,9 +22,9 @@ async def speedtst(message: Message):
         test.results.share()
         result = test.results.dict()
     except Exception as e:
-        await message.err(text=e)
+        await message.err(e)
         return
-    path = wget.download(result['share'])
+    path = await pool.run_in_thread(wget.download)(result['share'])
     output = f"""**--Started at {result['timestamp']}--
 
 Client:

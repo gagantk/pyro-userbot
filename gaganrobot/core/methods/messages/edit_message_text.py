@@ -2,12 +2,14 @@
 
 __all__ = ['EditMessageText']
 
+import inspect
 import asyncio
-from typing import Optional, Union
+from typing import Optional, Union, List
 
-from pyrogram.types import InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardMarkup, MessageEntity
 
 from gaganrobot import Config
+from gaganrobot.utils import secure_text
 from ...ext import RawClient
 from ... import types
 
@@ -20,6 +22,7 @@ class EditMessageText(RawClient):  # pylint: disable=missing-class-docstring
                                 del_in: int = -1,
                                 log: Union[bool, str] = False,
                                 parse_mode: Union[str, object] = object,
+                                entities: List[MessageEntity] = None,
                                 disable_web_page_preview: Optional[bool] = None,
                                 reply_markup: InlineKeyboardMarkup = None
                                 ) -> Union['types.bound.Message', bool]:
@@ -48,9 +51,6 @@ class EditMessageText(RawClient):  # pylint: disable=missing-class-docstring
                 to the log channel.
                 If ``str``, the logger name will be updated.
 
-            sudo (``bool``, *optional*):
-                If ``True``, sudo users supported.
-
             parse_mode (``str``, *optional*):
                 By default, texts are parsed using
                 both Markdown and HTML styles.
@@ -59,6 +59,10 @@ class EditMessageText(RawClient):  # pylint: disable=missing-class-docstring
                 Markdown-style parsing only.
                 Pass "html" to enable HTML-style parsing only.
                 Pass None to completely disable style parsing.
+
+            entities (List of :obj:`~pyrogram.types.MessageEntity`):
+                List of special entities that appear in message text,
+                which can be specified instead of *parse_mode*.
 
             disable_web_page_preview (``bool``, *optional*):
                 Disables link previews for links in this message.
@@ -73,19 +77,20 @@ class EditMessageText(RawClient):  # pylint: disable=missing-class-docstring
         Raises:
             RPCError: In case of a Telegram RPC error.
         """
+        if text and chat_id not in Config.AUTH_CHATS:
+            text = secure_text(str(text))
         msg = await super().edit_message_text(chat_id=chat_id,
                                               message_id=message_id,
                                               text=text,
                                               parse_mode=parse_mode,
+                                              entities=entities,
                                               disable_web_page_preview=disable_web_page_preview,
                                               reply_markup=reply_markup)
+        module = inspect.currentframe().f_back.f_globals['__name__']
         if log:
-            args = [msg]
-            if isinstance(log, str):
-                args.append(log)
-            await self._channel.fwd_msg(*args)
+            await self._channel.fwd_msg(msg, module if isinstance(log, bool) else log)
         del_in = del_in or Config.MSG_DELETE_TIMEOUT
         if del_in > 0:
             await asyncio.sleep(del_in)
             return bool(await msg.delete())
-        return types.bound.Message(self, msg)
+        return types.bound.Message.parse(self, msg, module=module)

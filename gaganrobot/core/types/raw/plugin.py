@@ -15,7 +15,6 @@ _LOG_STR = "<<<!  [[[[[  %s  ]]]]]  !>>>"
 
 class Plugin:
     """ plugin class """
-
     def __init__(self, client: '_client.GaganRobot', name: str, parent: str) -> None:
         self._client = client
         self.name = name
@@ -26,7 +25,7 @@ class Plugin:
         _LOG.debug(_LOG_STR, f"created plugin -> {self.name}")
 
     def __repr__(self) -> str:
-        return f"<plugin {self.name} - {self.commands + self.filters}>"
+        return f"<plugin {self.name} {self.commands + self.filters}>"
 
     @property
     def is_enabled(self) -> bool:
